@@ -1,7 +1,7 @@
-# BEAUTY OS — Regras permanentes do projeto
+# BeautyNailapp — Regras permanentes do projeto
 
 > Este arquivo é lido em toda sessão. Não repita estas regras nos prompts de fase.
-> Nome provisório: BEAUTY OS (deve vir de configuração, nunca fixo no código).
+> Nome do projeto e do repositório: BeautyNailapp (deve vir de configuração `platform_settings.product.name`, nunca fixo no código).
 
 ## 1. Missão
 Plataforma SaaS multi-tenant para profissionais da beleza (nail design, sobrancelhas, cílios, cabelo, estética etc.). Uma infraestrutura compartilhada; cada profissional tem seu próprio negócio digital (marca, clientes, serviços, agenda, página pública). Não é só uma agenda online.
