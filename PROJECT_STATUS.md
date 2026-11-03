@@ -22,6 +22,6 @@ Ver alertas aceitos em `SECURITY.md`.
 ## Próxima etapa
 Anexar repositório → scaffold Next.js + cliente Supabase → auth → onboarding → painel → testes.
 
-## Bloqueios em 2026-11-03
-- GitHub: o conector tem acesso só de leitura ao repositório (403 ao criar branch). Nada foi enviado ao GitHub; entrega via .zip.
-- npm/pip: registros de pacotes inacessíveis na sessão de desenvolvimento (DNS). O app Next.js não pôde ser instalado, compilado nem testado aqui.
+## Situação em 2026-11-03
+- GitHub: repositório anexado à sessão com permissão de escrita; branch `develop` criada. A `main` fica só para produção (merge via PR).
+- npm/pip: registros de pacotes inacessíveis na sessão de desenvolvimento (DNS). O app Next.js ainda não pôde ser instalado, compilado nem testado aqui.
