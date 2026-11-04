@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, "feature/**"]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  app:
+    name: App (lint, testes, build, typecheck)
+    runs-on: ubuntu-latest
+    env:
+      # Valores de mentira só para compilar; o app real usa as variáveis da Vercel.
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key-0000
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Sem package-lock.json ainda: troque por `npm ci` quando o lockfile for commitado.
+      - run: npm install
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm run typecheck
+
+  database:
+    name: Banco (RLS A x B) — experimental
+    runs-on: ubuntu-latest
+    # Nunca foi executado: ainda não validado. Não bloqueia o app até confirmarmos que roda.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Inicializa config local (se faltar) e sobe o Supabase
+        run: |
+          [ -f supabase/config.toml ] || supabase init
+          supabase start
+      - name: Aplica migrations
+        run: supabase db reset
+      - name: Roda o teste de isolamento
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/rls_isolation.sql
