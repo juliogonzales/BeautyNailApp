@@ -47,7 +47,7 @@ export async function signupAction(_prev: FormState, formData: FormData): Promis
     password: parsed.data.password,
     options: {
       data: { full_name: parsed.data.fullName },
-      emailRedirectTo: `${NEXT_PUBLIC_SITE_URL}/auth/callback?next=/onboarding`,
+      emailRedirectTo: `${NEXT_PUBLIC_SITE_URL}/auth/callback?next=/bem-vinda`,
     },
   });
   if (error) return { error: friendlyAuthError(error.message) };
@@ -56,7 +56,7 @@ export async function signupAction(_prev: FormState, formData: FormData): Promis
   if (!data.session) {
     return { message: "Enviamos um link de confirmação para o seu e-mail. Abra-o para continuar." };
   }
-  redirect("/onboarding");
+  redirect("/bem-vinda");
 }
 
 export async function googleAction(): Promise<void> {

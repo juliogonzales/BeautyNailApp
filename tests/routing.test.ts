@@ -21,6 +21,9 @@ describe("rotas", () => {
     expect(isProtectedPath("/painel")).toBe(true);
     expect(isProtectedPath("/painel/clientes")).toBe(true);
     expect(isProtectedPath("/onboarding")).toBe(true);
+    expect(isProtectedPath("/bem-vinda")).toBe(true);
+    expect(isProtectedPath("/planos")).toBe(true);
+    expect(isProtectedPath("/painel/calculadora")).toBe(true);
     expect(isProtectedPath("/painelzinho")).toBe(false);
     expect(isProtectedPath("/")).toBe(false);
   });

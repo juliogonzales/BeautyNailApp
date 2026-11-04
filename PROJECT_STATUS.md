@@ -9,8 +9,10 @@
 App Next.js da Fase 1 escrito sem acesso ao npm; **nunca foi instalado, compilado nem testado**. Qualquer erro de versão/tipo só aparece na primeira execução da CI.
 - Cadastro/login por e-mail e senha, login com Google (botão pronto; falta configurar o provedor), callback PKCE, logout.
 - Middleware (renova sessão, protege `/painel` e `/onboarding`, evita open redirect em `?next=`).
-- Onboarding: nome, endereço (`/slug`) com checagem de disponibilidade, especialidades → RPC `create_tenant`.
-- Painel: negócio, plano e features do plano (lidos do banco).
+- Fluxo de entrada reformulado (2026-11-04): cadastro → `/bem-vinda` (benefícios) → `/planos` (só o gratuito é selecionável; pagos "Em breve") → `/onboarding` (nome, endereço `/slug` com checagem, especialidades → RPC `create_tenant`) → `/painel`.
+- Painel liberado no plano gratuito (feature `dashboard`, migration `20261104000001`, **já aplicada no Supabase de desenvolvimento**): atalhos, plano e recursos, sem números inventados.
+- Calculadora de preços liberada no plano gratuito (`/painel/calculadora`, sem persistência).
+- **Verificado manualmente (2026-11-04, preview Vercel):** cadastro → onboarding → negócio criado no banco (dona, plano Esmalte, especialidades, auditoria). O endereço `/{slug}` dava 404 porque a página pública não existe (D-018).
 - Helper de limites (`src/lib/plan-limits.ts`): `checkLimit`, `getFeatureState`, `assertFeatureAllowed`, `describeFeature`.
 - Testes Vitest (validação, rotas, limites, rate limit, erros): escritos, **não executados**.
 - GitHub Actions (`.github/workflows/ci.yml`): job `app` (lint, testes, build, typecheck) e job `database` (RLS A×B, experimental, nunca executado).
@@ -32,7 +34,7 @@ App Next.js da Fase 1 escrito sem acesso ao npm; **nunca foi instalado, compilad
 Ver alertas aceitos em `SECURITY.md`.
 
 ## Próxima etapa
-Rodar a CI → corrigir falhas → commitar lockfile → configurar variáveis/Google/Vercel → Fase 2.
+Validar o novo fluxo no preview e rodar a CI → commitar lockfile → Google → Fase 2 (serviços, clientes, agenda, página pública).
 
 ## Situação em 2026-11-03
 - GitHub: repositório anexado à sessão com permissão de escrita; branch `develop` criada. A `main` fica só para produção (merge via PR).

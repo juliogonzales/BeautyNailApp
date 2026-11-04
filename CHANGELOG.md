@@ -6,3 +6,6 @@
 
 ## 2026-11-03
 - Código do app da Fase 1 (auth, onboarding, painel, helper de limites) e CI adicionados. **Ainda não validados** (CI pendente).
+
+## 2026-11-04
+- Fluxo de entrada: boas-vindas → planos → criar negócio → painel. Painel e calculadora de preços liberados no plano gratuito (migration `20261104000001`).

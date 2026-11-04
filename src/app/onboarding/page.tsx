@@ -21,7 +21,7 @@ export default async function OnboardingPage() {
 
   return (
     <main className="mx-auto max-w-md px-4 py-10">
-      <p className="text-sm uppercase tracking-widest text-gold">Passo 1 de 1</p>
+      <p className="text-sm uppercase tracking-widest text-gold">Passo 3 de 3</p>
       <h1 className="mt-2 font-serif text-3xl text-cocoa">Vamos criar o seu negócio</h1>
       <p className="mt-2 text-graphite/80">Leva menos de um minuto. Você poderá mudar tudo depois.</p>
 

@@ -7,7 +7,7 @@ import { getSessionContext } from "@/lib/tenant";
 export default async function PainelLayout({ children }: { children: ReactNode }) {
   const { user, membership } = await getSessionContext();
   if (!user) redirect("/login?next=/painel");
-  if (!membership) redirect("/onboarding");
+  if (!membership) redirect("/bem-vinda");
 
   const productName = await getProductName();
 

@@ -20,6 +20,6 @@ Convenções: UUID, `timestamptz`, dinheiro em centavos, `updated_at` por trigge
 
 RPCs (`authenticated` apenas): `create_tenant`, `is_slug_available`, `log_audit`, `tenant_feature`.
 
-Dados de referência: 4 planos (Esmalte/Gel/Fibra/Master), 20 features, 16 especialidades, ~70 slugs reservados.
+Dados de referência: 4 planos (Esmalte/Gel/Fibra/Master), 21 features (inclui `dashboard`, liberado em todos os planos), 16 especialidades, ~70 slugs reservados.
 
 Esboço das próximas fases: customers, customer_consents, customer_health_records (tabela separada), anamnesis_*, services, appointments, availability_rules, financeiro, estoque etc. — sempre com `tenant_id` + RLS + teste de isolamento.
