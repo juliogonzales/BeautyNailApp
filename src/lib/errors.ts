@@ -8,6 +8,8 @@ const DB_ERRORS: Record<string, string> = {
   user_not_found: "Não existe usuário cadastrado com esse e-mail. A pessoa precisa criar a conta primeiro.",
   cannot_revoke_self: "Você não pode remover o seu próprio acesso.",
   tenant_not_found: "Negócio não encontrado.",
+  limit_reached: "Você atingiu o limite do seu plano para este item. Veja os planos para ampliar.",
+  feature_disabled: "Este recurso não está incluído no seu plano.",
   reason_required: "Informe o motivo (fica registrado na auditoria).",
   plan_not_found: "Plano não encontrado ou inativo.",
   subscription_not_found: "Esse negócio não tem assinatura ativa.",

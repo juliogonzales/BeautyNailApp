@@ -1,4 +1,6 @@
+import { formatBRL } from "@/lib/money";
 import { instagramUrl, whatsappContactLink, type PublicTenant } from "@/lib/public-page";
+import { formatDuration, groupByCategory } from "@/lib/services";
 import { FONT_STACKS, RADIUS_PX, readableOn, type ThemeConfig } from "@/lib/theme";
 
 /** Aparência da página pública a partir de um modelo. Usada na página real e na pré-visualização do console. */
@@ -49,6 +51,28 @@ export function PublicPageView({ tenant, theme }: { tenant: PublicTenant; theme:
                 </li>
               ))}
             </ul>
+          ) : null}
+
+          {theme.show.services && tenant.services.length > 0 ? (
+            <section aria-label="Serviços" className="mt-8 space-y-5">
+              {groupByCategory(tenant.services).map((g) => (
+                <div key={g.category}>
+                  <h2 className="text-sm uppercase tracking-widest" style={{ color: c.accent }}>{g.category}</h2>
+                  <ul className="mt-2 divide-y" style={{ borderColor: `${c.accent}55` }}>
+                    {g.items.map((sv) => (
+                      <li key={sv.name} className="flex items-start justify-between gap-3 py-3" style={{ borderColor: `${c.accent}55` }}>
+                        <div className="min-w-0">
+                          <p className="font-medium">{sv.name}</p>
+                          {sv.description ? <p className="text-sm" style={{ color: c.muted }}>{sv.description}</p> : null}
+                          <p className="text-xs" style={{ color: c.muted }}>{formatDuration(sv.duration_minutes)}</p>
+                        </div>
+                        <p className="shrink-0 font-medium">{formatBRL(sv.price_cents)}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </section>
           ) : null}
 
           <div className="mt-8 space-y-3">

@@ -17,6 +17,10 @@ const SAMPLE: PublicTenant = {
   slug: "exemplo", business_name: "Studio Exemplo", city: "São Paulo", state: "SP", neighborhood: "Jardins", address_line: null,
   whatsapp: "11912345678", instagram: "studioexemplo", primary_color: null, accent_color: null,
   specialties: ["Nail design", "Manicure", "Sobrancelhas"],
+  services: [
+    { name: "Esmaltação em gel", description: "Duração de até 3 semanas.", category: "Mãos", price_cents: 8000, duration_minutes: 60 },
+    { name: "Pedicure", description: null, category: "Pés", price_cents: 7000, duration_minutes: 75 },
+  ],
 };
 
 export default async function EditTemplatePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<FlashParams> }) {

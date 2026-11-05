@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { publicServiceSchema } from "@/lib/services";
 
 /** Campos que a página pública pode mostrar (o banco só devolve estes; ver RPC get_public_tenant). */
 export const publicTenantSchema = z.object({
@@ -14,6 +15,7 @@ export const publicTenantSchema = z.object({
   accent_color: z.string().nullable(),
   specialties: z.array(z.string()),
   theme: z.unknown().optional(),
+  services: z.array(publicServiceSchema).default([]),
 });
 export type PublicTenant = z.infer<typeof publicTenantSchema>;
 

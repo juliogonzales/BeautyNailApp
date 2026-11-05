@@ -29,7 +29,10 @@ export const themeConfigSchema = z.object({
   radius: z.enum(["none", "soft", "round"]),
   avatar: z.enum(["initial", "none"]),
   colors: themeColorsSchema,
-  show: z.object({ specialties: z.boolean(), whatsapp: z.boolean(), instagram: z.boolean(), location: z.boolean() }),
+  show: z.object({
+    specialties: z.boolean(), whatsapp: z.boolean(), instagram: z.boolean(), location: z.boolean(),
+    services: z.boolean().default(true),
+  }),
 });
 export type ThemeConfig = z.infer<typeof themeConfigSchema>;
 
@@ -37,7 +40,7 @@ export type ThemeConfig = z.infer<typeof themeConfigSchema>;
 export const FALLBACK_THEME: ThemeConfig = {
   layout: "centered", font: "serif", radius: "soft", avatar: "initial",
   colors: { background: "#faf7f2", surface: "#ffffff", text: "#3a3330", muted: "#6f6560", primary: "#5b4636", accent: "#b8975a" },
-  show: { specialties: true, whatsapp: true, instagram: true, location: true },
+  show: { specialties: true, whatsapp: true, instagram: true, location: true, services: true },
 };
 
 export function parseTheme(raw: unknown): ThemeConfig {

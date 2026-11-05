@@ -43,6 +43,7 @@ describe("página pública", () => {
     const ok = publicTenantSchema.safeParse({
       slug: "joy", business_name: "Joy", city: null, state: null, neighborhood: null, address_line: null,
       whatsapp: null, instagram: null, primary_color: null, accent_color: null, specialties: ["Nail design"],
+      services: [{ name: "Gel", description: null, category: null, price_cents: 8000, duration_minutes: 60 }],
     });
     expect(ok.success).toBe(true);
     expect(publicTenantSchema.safeParse({ slug: "joy" }).success).toBe(false);
