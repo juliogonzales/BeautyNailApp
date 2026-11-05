@@ -6,6 +6,7 @@ export const ADMIN_SECTIONS = {
   planos: { label: "Planos", href: "/admin/planos", roles: ["superadmin", "billing"] },
   recursos: { label: "Recursos", href: "/admin/recursos", roles: ["superadmin", "billing"] },
   especialidades: { label: "Especialidades", href: "/admin/especialidades", roles: ["superadmin", "support"] },
+  modelos: { label: "Modelos de página", href: "/admin/modelos", roles: ["superadmin"] },
   textos: { label: "Textos", href: "/admin/textos", roles: ["superadmin"] },
   negocios: { label: "Negócios", href: "/admin/negocios", roles: ["superadmin", "support", "billing"] },
   auditoria: { label: "Auditoria", href: "/admin/auditoria", roles: ["superadmin", "support"] },

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { parseBRLToCents, parseWholeNumber } from "@/lib/pricing";
+import { themeColorsSchema, themeConfigSchema, themeContrastIssues, type ThemeConfig } from "@/lib/theme";
 
 const blankToNull = (v: string) => (v.trim() === "" ? null : v.trim());
 const checkbox = z.preprocess((v) => v === "on" || v === "true", z.boolean());
@@ -84,4 +85,86 @@ export function parseBenefitRows(titles: string[], texts: string[], available: S
 
 export function parseGuaranteeRows(values: string[]) {
   return values.map((v) => v.trim()).filter((v) => v !== "");
+}
+
+// ---------------------------------------------------------------- Modelos de página pública
+
+
+export const templateMetaSchema = z.object({
+  slug: z.string().trim().toLowerCase().regex(/^[a-z0-9-]{2,40}$/, "Slug: 2 a 40 letras minúsculas, números e hífen."),
+  name: z.string().trim().min(2, "Informe o nome.").max(60),
+  description: z.string().trim().max(200).transform(blankToNull),
+  sortOrder: whole("Ordem", 0, 1000),
+  isActive: checkbox,
+});
+
+/** Monta e valida a configuração do modelo a partir do formulário. Barra combinações com texto ilegível. */
+export function parseTemplateConfig(
+  input: Record<string, FormDataEntryValue>,
+): { ok: true; config: ThemeConfig } | { ok: false; error: string } {
+  const get = (k: string) => (typeof input[k] === "string" ? (input[k] as string) : "");
+  const on = (k: string) => input[k] === "on";
+  const colors = themeColorsSchema.safeParse({
+    background: get("c_background"), surface: get("c_surface"), text: get("c_text"),
+    muted: get("c_muted"), primary: get("c_primary"), accent: get("c_accent"),
+  });
+  if (!colors.success) return { ok: false, error: colors.error.issues[0]?.message ?? "Cores inválidas." };
+  const config = themeConfigSchema.safeParse({
+    layout: get("layout"), font: get("font"), radius: get("radius"), avatar: get("avatar"),
+    colors: colors.data,
+    show: { specialties: on("s_specialties"), whatsapp: on("s_whatsapp"), instagram: on("s_instagram"), location: on("s_location") },
+  });
+  if (!config.success) return { ok: false, error: "Escolha layout, fonte, cantos e avatar válidos." };
+  const issues = themeContrastIssues(config.data.colors);
+  if (issues.length > 0) return { ok: false, error: issues[0]! };
+  return { ok: true, config: config.data };
+}
+
+// ---------------------------------------------------------------- Gestão de negócios
+
+export const featureOverrideSchema = z.object({
+  tenantId: z.string().uuid(),
+  key: z.string().regex(/^[a-z0-9_]{2,48}$/),
+  enabled: z.enum(["sim", "nao"]).transform((v) => v === "sim"),
+  limit: z.string().trim().transform((v, ctx) => {
+    if (v === "") return null;
+    const n = parseWholeNumber(v);
+    if (n === null || n > 1_000_000) {
+      ctx.addIssue({ code: "custom", message: "Limite: número inteiro ou vazio para ilimitado." });
+      return z.NEVER;
+    }
+    return n;
+  }),
+  reason: z.string().trim().min(3, "Informe o motivo (fica na auditoria).").max(300),
+  expires: z.string().trim().transform((v, ctx) => {
+    if (v === "") return null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      ctx.addIssue({ code: "custom", message: "Data de validade inválida." });
+      return z.NEVER;
+    }
+    const d = new Date(`${v}T23:59:59-03:00`);
+    if (Number.isNaN(d.getTime()) || d.getTime() <= Date.now()) {
+      ctx.addIssue({ code: "custom", message: "A validade precisa ser uma data futura." });
+      return z.NEVER;
+    }
+    return d.toISOString();
+  }),
+});
+
+export const tenantPlanSchema = z.object({
+  tenantId: z.string().uuid(),
+  planId: z.string().uuid(),
+  reason: z.string().trim().min(3, "Informe o motivo (fica na auditoria).").max(300),
+});
+
+/** Busca de negócios: só letras, números, espaço, hífen e ponto (evita injetar sintaxe no filtro). */
+export function sanitizeSearch(raw: string): string {
+  return raw.normalize("NFC").replace(/[^\p{L}\p{N} .-]/gu, "").trim().slice(0, 60);
+}
+
+/** Célula de CSV segura: aspas escapadas e proteção contra fórmulas de planilha (=, +, -, @). */
+export function csvCell(value: string | number | null | undefined): string {
+  let s = value === null || value === undefined ? "" : String(value);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return `"${s.replace(/"/g, '""')}"`;
 }

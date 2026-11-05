@@ -35,6 +35,7 @@ const SHORTCUTS: Array<{ title: string; text: string; href?: string }> = [
   { title: "Serviços", text: "Cadastre o que você oferece, com preço e duração." },
   { title: "Clientes", text: "Ficha e histórico de cada cliente." },
   { title: "Agenda", text: "Seus horários e atendimentos." },
+  { title: "Aparência da página", text: "Modelo e cores da sua página pública.", href: "/painel/aparencia" },
   { title: "Perfil público", text: "WhatsApp, Instagram e cidade que aparecem na sua página.", href: "/painel/perfil" },
 ];
 

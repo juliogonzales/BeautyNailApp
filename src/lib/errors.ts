@@ -8,6 +8,12 @@ const DB_ERRORS: Record<string, string> = {
   user_not_found: "Não existe usuário cadastrado com esse e-mail. A pessoa precisa criar a conta primeiro.",
   cannot_revoke_self: "Você não pode remover o seu próprio acesso.",
   tenant_not_found: "Negócio não encontrado.",
+  reason_required: "Informe o motivo (fica registrado na auditoria).",
+  plan_not_found: "Plano não encontrado ou inativo.",
+  subscription_not_found: "Esse negócio não tem assinatura ativa.",
+  feature_not_found: "Recurso não encontrado.",
+  invalid_expiry: "A validade precisa ser uma data futura.",
+  template_not_found: "Modelo não encontrado ou inativo.",
   tenant_deleted: "Esse negócio foi excluído e não pode ser alterado.",
 };
 

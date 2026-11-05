@@ -13,6 +13,7 @@ export const publicTenantSchema = z.object({
   primary_color: z.string().nullable(),
   accent_color: z.string().nullable(),
   specialties: z.array(z.string()),
+  theme: z.unknown().optional(),
 });
 export type PublicTenant = z.infer<typeof publicTenantSchema>;
 
