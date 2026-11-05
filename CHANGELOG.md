@@ -10,5 +10,5 @@
 ## 2026-11-04
 - Fluxo de entrada: boas-vindas → planos → criar negócio → painel. Painel e calculadora de preços liberados no plano gratuito (migration `20261104000001`).
 - Página pública `/{slug}` (RPC `get_public_tenant`), link no painel com copiar, WhatsApp e QR code, perfil público (`/painel/perfil`) e checklist de primeiros passos.
-- Console `/admin`: visão geral, planos (dados + recursos/limites), recursos, especialidades, textos do sistema, negócios (suspender/reativar), auditoria e equipe. Migration `20261104000002` (**escrita; ainda não aplicada**).
+- Console `/admin`: visão geral, planos (dados + recursos/limites), recursos, especialidades, textos do sistema, negócios (suspender/reativar), auditoria e equipe. Migration `20261104000002` (aplicada no Supabase de desenvolvimento).
 
