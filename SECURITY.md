@@ -26,3 +26,9 @@
 - Rate limiting nos endpoints (Fase 1, app).
 - Termos de uso e política de privacidade: **rascunhos precisam de revisão de advogado**; dados de saúde (anamnese) exigem consentimento específico (LGPD art. 11).
 - Backups: plano gratuito não oferece backup confiável; contratar plano Pro antes de ter clientes pagantes.
+
+## Console de administração e página pública (2026-11-04)
+- `/admin` só abre para quem está em `platform_admins`; os demais recebem 404. Permissões repetidas no banco (RLS/RPC). Mudanças administrativas são auditadas (`admin.*`).
+- O console não acessa anamnese nem dados de clientes (regra CLAUDE.md §5); novas tabelas de saúde da Fase 2 **não** devem ter policy para `platform_admins`.
+- A página pública usa apenas a RPC `get_public_tenant` (campos seguros). Endereço só aparece com `address_public = true`.
+- Pendente: teste automatizado de banco cobrindo essas RPCs (A não vê B; anon só vê o permitido; não-admin não executa `admin_*`).

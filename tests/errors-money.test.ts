@@ -27,3 +27,12 @@ describe("formatBRL", () => {
     expect(formatBRL(0).replace(/\s/g, " ")).toBe("R$ 0,00");
   });
 });
+
+describe("friendlyAdminDbError", () => {
+  it("explica conflito de chave só no console", async () => {
+    const { friendlyAdminDbError } = await import("@/lib/errors");
+    expect(friendlyAdminDbError('duplicate key value violates unique constraint "plans_slug_key"')).toContain("Já existe");
+    expect(friendlyAdminDbError("user_not_found")).toContain("conta");
+    expect(friendlyAdminDbError("erro desconhecido")).toBe("Algo deu errado. Tente novamente em instantes.");
+  });
+});

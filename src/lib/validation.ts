@@ -38,3 +38,30 @@ export const onboardingSchema = z.object({
   slug: slugSchema,
   specialtyIds: z.array(z.string().uuid()).max(16),
 });
+
+const UF = [
+  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
+] as const;
+
+/** Perfil público: tudo opcional. Vazio vira null (apaga o campo). */
+export const publicProfileSchema = z.object({
+  whatsapp: z
+    .string()
+    .trim()
+    .transform((v) => v.replace(/\D/g, ""))
+    .refine((v) => v === "" || (v.length >= 10 && v.length <= 13), "Informe o WhatsApp com DDD, ex.: (11) 91234-5678.")
+    .transform((v) => (v === "" ? null : v)),
+  instagram: z
+    .string()
+    .trim()
+    .transform((v) => v.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/^@/, "").split(/[/?#]/)[0] ?? "")
+    .refine((v) => v === "" || /^[A-Za-z0-9._]{1,30}$/.test(v), "Use só o nome de usuário, ex.: joyvega.nails")
+    .transform((v) => (v === "" ? null : v)),
+  city: z.string().trim().max(80, "Máximo de 80 caracteres.").transform((v) => (v === "" ? null : v)),
+  state: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .refine((v) => v === "" || (UF as readonly string[]).includes(v), "Escolha um estado válido.")
+    .transform((v) => (v === "" ? null : v)),
+});

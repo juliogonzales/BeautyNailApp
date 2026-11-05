@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import QRCode from "qrcode";
+import { ShareLinkCard } from "@/components/share-link-card";
 import { getPublicEnv } from "@/lib/env";
+import { publicUrl, whatsappShareLink } from "@/lib/public-page";
 import { formatBRL } from "@/lib/money";
 import { checkLimit, describeFeature, getFeatureState } from "@/lib/plan-limits";
 import { getSessionContext } from "@/lib/tenant";
@@ -32,7 +35,7 @@ const SHORTCUTS: Array<{ title: string; text: string; href?: string }> = [
   { title: "Serviços", text: "Cadastre o que você oferece, com preço e duração." },
   { title: "Clientes", text: "Ficha e histórico de cada cliente." },
   { title: "Agenda", text: "Seus horários e atendimentos." },
-  { title: "Página pública", text: "Seu endereço na internet, com agendamento." },
+  { title: "Perfil público", text: "WhatsApp, Instagram e cidade que aparecem na sua página.", href: "/painel/perfil" },
 ];
 
 export default async function PainelPage() {
@@ -92,7 +95,22 @@ export default async function PainelPage() {
       .sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
-  const reservedAddress = `${new URL(getPublicEnv().NEXT_PUBLIC_SITE_URL).host}/${tenant.slug}`;
+  const siteUrl = getPublicEnv().NEXT_PUBLIC_SITE_URL;
+  const url = publicUrl(siteUrl, tenant.slug);
+  const displayUrl = `${new URL(siteUrl).host}/${tenant.slug}`;
+  const qrSvg = await QRCode.toString(url, { type: "svg", margin: 1, errorCorrectionLevel: "M" });
+
+  const { data: settings } = await supabase
+    .from("tenant_settings")
+    .select("whatsapp, instagram")
+    .eq("tenant_id", tenant.id)
+    .maybeSingle();
+  const hasContact = Boolean(settings?.whatsapp || settings?.instagram);
+  const steps: Array<{ label: string; done: boolean; href?: string }> = [
+    { label: "Criar o seu negócio", done: true },
+    { label: "Publicar um contato na sua página (WhatsApp ou Instagram)", done: hasContact, href: "/painel/perfil" },
+    { label: "Calcular o preço dos seus serviços", done: false, href: canUseCalculator ? "/painel/calculadora" : undefined },
+  ];
   const included = features.filter((f) => f.enabled);
   const notIncluded = features.filter((f) => !f.enabled);
 
@@ -100,10 +118,30 @@ export default async function PainelPage() {
     <main className="space-y-8">
       <section>
         <h1 className="font-serif text-3xl text-cocoa">Olá! O {tenant.businessName} está criado.</h1>
-        <p className="mt-2 text-graphite/80">
-          Seu endereço <span className="font-medium text-cocoa">{reservedAddress}</span> está reservado para você. A página
-          pública ainda não está no ar; ela chega junto com serviços, clientes e agenda.
-        </p>
+        <p className="mt-2 text-graphite/80">Sua página já está no ar. Divulgue o link abaixo.</p>
+      </section>
+
+      <ShareLinkCard
+        url={url}
+        displayUrl={displayUrl}
+        whatsappShareHref={whatsappShareLink(url, tenant.businessName)}
+        qrSvg={qrSvg}
+        businessName={tenant.businessName}
+      />
+
+      <section className="rounded-xl border border-sand bg-white p-5">
+        <h2 className="text-sm uppercase tracking-widest text-gold">Primeiros passos</h2>
+        <ul className="mt-3 space-y-2 text-sm">
+          {steps.map((st) => (
+            <li key={st.label} className="flex items-start gap-2">
+              <span aria-hidden="true" className={st.done ? "text-gold" : "text-graphite/40"}>{st.done ? "✓" : "○"}</span>
+              <span className={st.done ? "text-graphite/70 line-through" : ""}>
+                {st.href && !st.done ? <Link href={st.href} className="font-medium text-cocoa underline">{st.label}</Link> : st.label}
+              </span>
+              <span className="sr-only">{st.done ? "(feito)" : "(pendente)"}</span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section>

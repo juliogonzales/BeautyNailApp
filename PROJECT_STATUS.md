@@ -17,6 +17,14 @@ App Next.js da Fase 1 escrito sem acesso ao npm; **nunca foi instalado, compilad
 - Testes Vitest (validação, rotas, limites, rate limit, erros): escritos, **não executados**.
 - GitHub Actions (`.github/workflows/ci.yml`): job `app` (lint, testes, build, typecheck) e job `database` (RLS A×B, experimental, nunca executado).
 
+## Implementado em 2026-11-04 (noite), NÃO validado
+- Página pública `/{slug}`, bloco "Seu link" no painel (abrir, copiar, WhatsApp, QR), `/painel/perfil`, checklist de primeiros passos.
+- Console `/admin` (visão geral, planos, recursos, especialidades, textos, negócios, auditoria, equipe), com acesso por papel.
+- Testes novos (`tests/public-page.test.ts`, `tests/admin.test.ts`): escritos, **não executados**.
+- **Migration `20261104000002` NÃO aplicada no Supabase** (o conector cancelou a confirmação 3 vezes). Sem ela: `/{slug}` dá 404, `/admin` dá 404 e os textos da Bem-vinda usam a reserva do código. Aplicar pelo SQL Editor do Supabase (arquivo no repositório).
+- Falta inserir o primeiro superadmin em `platform_admins` (D-024).
+- Falta teste de banco (RLS) para as novas RPCs/triggers e para a leitura pública.
+
 ## Em andamento / pendente
 - **Primeira execução da CI e correção do que ela apontar** (próxima ação).
 - Commitar `package-lock.json` e trocar `npm install` por `npm ci` no workflow.
@@ -34,7 +42,7 @@ App Next.js da Fase 1 escrito sem acesso ao npm; **nunca foi instalado, compilad
 Ver alertas aceitos em `SECURITY.md`.
 
 ## Próxima etapa
-Validar o novo fluxo no preview e rodar a CI → commitar lockfile → Google → Fase 2 (serviços, clientes, agenda, página pública).
+Aplicar a migration `20261104000002`, definir o primeiro superadmin, conferir o build da Vercel e testar página pública e console. Depois: Validar o novo fluxo no preview e rodar a CI → commitar lockfile → Google → Fase 2 (serviços, clientes, agenda, página pública).
 
 ## Situação em 2026-11-03
 - GitHub: repositório anexado à sessão com permissão de escrita; branch `develop` criada. A `main` fica só para produção (merge via PR).

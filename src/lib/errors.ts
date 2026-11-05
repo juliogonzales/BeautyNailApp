@@ -5,6 +5,10 @@ const DB_ERRORS: Record<string, string> = {
   invalid_business_name: "O nome do negócio precisa ter entre 2 e 80 caracteres.",
   not_authenticated: "Sua sessão expirou. Entre novamente.",
   forbidden: "Você não tem permissão para isso.",
+  user_not_found: "Não existe usuário cadastrado com esse e-mail. A pessoa precisa criar a conta primeiro.",
+  cannot_revoke_self: "Você não pode remover o seu próprio acesso.",
+  tenant_not_found: "Negócio não encontrado.",
+  tenant_deleted: "Esse negócio foi excluído e não pode ser alterado.",
 };
 
 const GENERIC = "Algo deu errado. Tente novamente em instantes.";
@@ -25,4 +29,10 @@ export function friendlyAuthError(message?: string | null): string {
   if (m.includes("rate limit") || m.includes("too many")) return "Muitas tentativas. Aguarde um pouco e tente de novo.";
   if (m.includes("password")) return "A senha não atende aos requisitos. Use ao menos 8 caracteres.";
   return GENERIC;
+}
+
+/** Console admin: igual ao friendlyDbError, mas explica conflito de chave/slug (informação útil para quem administra). */
+export function friendlyAdminDbError(message?: string | null): string {
+  if (message?.includes("duplicate key")) return "Já existe um item com essa chave ou esse slug.";
+  return friendlyDbError(message);
 }

@@ -3,36 +3,17 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getProductName } from "@/lib/product";
 import { getSessionContext } from "@/lib/tenant";
+import { getWelcomeContent } from "@/lib/welcome-content";
 
 export const metadata: Metadata = { title: "Bem-vinda" };
 
-type Benefit = { title: string; text: string; available: boolean };
-
-// Só prometemos o que existe. O que ainda não foi construído aparece como "Em breve".
-const BENEFITS: Benefit[] = [
-  { title: "Painel do seu negócio", text: "Seu espaço com atalhos e o resumo do seu plano, desde o primeiro dia.", available: true },
-  { title: "Calculadora de preços", text: "Calcule quanto cobrar por serviço considerando material, tempo, custos fixos, taxa da maquininha e lucro.", available: true },
-  { title: "Serviços e clientes", text: "Cadastro de serviços com preço e duração, e ficha de cada cliente.", available: false },
-  { title: "Agenda", text: "Horários, encaixes e histórico de atendimentos em um só lugar.", available: false },
-  { title: "Página pública com a sua marca", text: "Um endereço só seu para divulgar serviços e portfólio e receber agendamentos.", available: false },
-  { title: "Anamnese digital", text: "Ficha de saúde da cliente guardada com acesso mínimo e protegida (LGPD).", available: false },
-  { title: "Financeiro e estoque", text: "Entradas, saídas, fluxo de caixa e controle de materiais.", available: false },
-];
-
-const GUARANTEES = [
-  "Comece grátis, sem cartão de crédito.",
-  "Cada negócio é isolado: ninguém vê os dados de outra profissional.",
-  "Dados de saúde das clientes ficam separados, e nem a nossa equipe os acessa.",
-  "Feito para usar no celular.",
-  "Cresce com você: você muda de plano quando precisar.",
-];
-
 export default async function WelcomePage() {
-  const { user, membership } = await getSessionContext();
+  const { supabase, user, membership } = await getSessionContext();
   if (!user) redirect("/login?next=/bem-vinda");
   if (membership) redirect("/painel");
 
   const name = await getProductName();
+  const { benefits: BENEFITS, guarantees: GUARANTEES } = await getWelcomeContent(supabase);
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">

@@ -19,6 +19,10 @@
 Convenções: UUID, `timestamptz`, dinheiro em centavos, `updated_at` por trigger, CPF/CNPJ só dígitos, CEP 8 dígitos.
 
 RPCs (`authenticated` apenas): `create_tenant`, `is_slug_available`, `log_audit`, `tenant_feature`.
+RPC pública (`anon` + `authenticated`): `get_public_tenant(slug)` — só campos seguros de negócios ativos.
+RPCs do console (`authenticated`, papel validado dentro da função): `admin_set_tenant_status`, `admin_list_platform_admins`, `admin_grant_platform_role`, `admin_revoke_platform_role`.
+Triggers (migration `20261104000002`): auditoria de configuração (`private.audit_admin_change`) e preenchimento automático de `plan_features` ao criar plano ou recurso.
+`platform_settings`: chaves `welcome.benefits` e `welcome.guarantees` (públicas) alimentam a tela Bem-vinda.
 
 Dados de referência: 4 planos (Esmalte/Gel/Fibra/Master), 21 features (inclui `dashboard`, liberado em todos os planos), 16 especialidades, ~70 slugs reservados.
 
