@@ -25,6 +25,12 @@ App Next.js da Fase 1 escrito sem acesso ao npm; **nunca foi instalado, compilad
 - Falta inserir o primeiro superadmin em `platform_admins` (D-024).
 - Falta teste de banco (RLS) para as novas RPCs/triggers e para a leitura pública.
 
+## Implementado em 2026-11-05, NÃO validado por testes automáticos
+- Console: negócios com busca, filtros, paginação, CSV, detalhe, troca de plano e exceções de recurso; modelos de página pública; painel `/painel/aparencia`.
+- Migrations `20261104000003`, `20261104000004` e `20261105000001` aplicadas no Supabase de desenvolvimento (conferido por consulta: 3 modelos, 1 padrão, `custom_theme` só nos planos pagos, RPCs `admin_*` sem acesso anônimo).
+- Bug achado e corrigido: o cadastro dependia do slug "esmalte" (D-027).
+- Testes Vitest novos em `tests/theme-and-management.test.ts`: escritos, **não executados**. Continua faltando o teste de banco (RLS) das novas tabelas/RPCs.
+
 ## Em andamento / pendente
 - **Primeira execução da CI e correção do que ela apontar** (próxima ação).
 - Commitar `package-lock.json` e trocar `npm install` por `npm ci` no workflow.

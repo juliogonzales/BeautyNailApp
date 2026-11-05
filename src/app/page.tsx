@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getFreePlanName } from "@/lib/free-plan";
 import { getProductName } from "@/lib/product";
 
 export default async function HomePage() {
@@ -10,7 +11,7 @@ export default async function HomePage() {
   } = await supabase.auth.getUser();
   if (user) redirect("/painel");
 
-  const name = await getProductName();
+  const [name, freeName] = await Promise.all([getProductName(), getFreePlanName(supabase)]);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">
@@ -19,7 +20,7 @@ export default async function HomePage() {
         O seu negócio de beleza, organizado e com a sua marca.
       </h1>
       <p className="mt-4 text-base text-graphite/80">
-        Agenda, clientes e página pública em um só lugar. Comece grátis no plano Esmalte.
+        Agenda, clientes e página pública em um só lugar. {freeName ? `Comece grátis no plano ${freeName}.` : "Comece grátis."}
       </p>
       <div className="mt-8 flex flex-col gap-3">
         <Link

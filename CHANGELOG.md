@@ -12,3 +12,9 @@
 - Página pública `/{slug}` (RPC `get_public_tenant`), link no painel com copiar, WhatsApp e QR code, perfil público (`/painel/perfil`) e checklist de primeiros passos.
 - Console `/admin`: visão geral, planos (dados + recursos/limites), recursos, especialidades, textos do sistema, negócios (suspender/reativar), auditoria e equipe. Migration `20261104000002` (aplicada no Supabase de desenvolvimento).
 
+## 2026-11-05
+- Console: busca/filtros/paginação e exportação CSV de negócios; detalhe do negócio (plano, uso, exceções de recurso, histórico); modelos de página pública; rótulos legíveis na auditoria.
+- Painel: `/painel/aparencia` (escolher modelo e cores, planos pagos).
+- Correção: criação de negócio e tela de planos dependiam do slug "esmalte"; agora usam o plano gratuito por preço (D-027).
+- Migrations `20261104000003`, `20261104000004`, `20261105000001` (aplicadas no Supabase de desenvolvimento).
+

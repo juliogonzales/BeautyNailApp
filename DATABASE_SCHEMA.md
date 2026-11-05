@@ -22,6 +22,8 @@ RPCs (`authenticated` apenas): `create_tenant`, `is_slug_available`, `log_audit`
 RPC pública (`anon` + `authenticated`): `get_public_tenant(slug)` — só campos seguros de negócios ativos.
 RPCs do console (`authenticated`, papel validado dentro da função): `admin_set_tenant_status`, `admin_list_platform_admins`, `admin_grant_platform_role`, `admin_revoke_platform_role`.
 Triggers (migration `20261104000002`): auditoria de configuração (`private.audit_admin_change`) e preenchimento automático de `plan_features` ao criar plano ou recurso.
+Tabelas novas (2026-11-05): `tenant_feature_overrides` (exceções por negócio; leitura só admin; escrita só por RPC), `page_templates` (modelos da página pública; leitura de ativos por logadas, escrita só superadmin). `tenant_settings.template_id` escolhe o modelo.
+RPCs novas: `admin_set_feature_override`, `admin_clear_feature_override`, `admin_set_tenant_plan`, `admin_tenant_overview`, `admin_set_default_template`; função interna `private.feature_state`. `get_public_tenant` devolve também o tema resolvido.
 `platform_settings`: chaves `welcome.benefits` e `welcome.guarantees` (públicas) alimentam a tela Bem-vinda.
 
 Dados de referência: 4 planos (Esmalte/Gel/Fibra/Master), 21 features (inclui `dashboard`, liberado em todos os planos), 16 especialidades, ~70 slugs reservados.

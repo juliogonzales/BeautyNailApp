@@ -197,7 +197,7 @@ insert into public.features (key, name, description, kind, unit, sort_order) val
   ('custom_theme', 'Aparência da página pública', 'Escolher modelo e cores da página pública', 'flag', null, 55)
 on conflict (key) do nothing;
 insert into public.plan_features (plan_id, feature_key, enabled, limit_value)
-select p.id, 'custom_theme', (p.slug <> 'esmalte'), null from public.plans p
+select p.id, 'custom_theme', (p.price_monthly_cents > 0), null from public.plans p
 on conflict (plan_id, feature_key) do update set enabled = excluded.enabled;
 
 insert into public.page_templates (slug, name, description, config, is_default, sort_order) values

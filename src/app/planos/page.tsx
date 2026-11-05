@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { formatBRL } from "@/lib/money";
 import { describeFeature } from "@/lib/plan-limits";
+import { getFreePlanName } from "@/lib/free-plan";
 import { getSessionContext } from "@/lib/tenant";
 
 export const metadata: Metadata = { title: "Planos" };
@@ -28,8 +29,7 @@ type Plan = {
 };
 
 const MAX_LISTED = 8;
-// Pagamento ainda não existe: só o plano gratuito pode ser escolhido (docs/DECISIONS.md D-014).
-const SELECTABLE_PLAN = "esmalte";
+// Pagamento ainda não existe: só o plano gratuito (preço zero) pode ser escolhido (docs/DECISIONS.md D-014).
 
 export default async function PlansPage() {
   const { supabase, user, membership } = await getSessionContext();
@@ -44,6 +44,8 @@ export default async function PlansPage() {
     .eq("is_active", true)
     .eq("is_public", true)
     .order("sort_order", { ascending: true });
+
+  const freeName = await getFreePlanName(supabase);
 
   const plans: Plan[] = (data ?? []).map((p) => ({
     id: p.id as string,
@@ -75,7 +77,7 @@ export default async function PlansPage() {
       <p className="text-sm uppercase tracking-widest text-gold">Passo 2 de 3</p>
       <h1 className="mt-2 font-serif text-3xl text-cocoa">Escolha o seu plano</h1>
       <p className="mt-2 text-graphite/80">
-        Comece pelo Esmalte, que é gratuito e já inclui o painel e a calculadora de preços. Os planos pagos chegam em breve, e
+        {freeName ? `Comece pelo ${freeName}, que é gratuito` : "Comece pelo plano gratuito"} e já inclui o painel e a calculadora de preços. Os planos pagos chegam em breve, e
         você poderá mudar quando quiser, sem perder nada do que cadastrou.
       </p>
 
@@ -86,7 +88,7 @@ export default async function PlansPage() {
       ) : (
         <ul className="mt-8 grid gap-4 sm:grid-cols-2">
           {plans.map((plan) => {
-            const selectable = plan.slug === SELECTABLE_PLAN;
+            const selectable = plan.priceMonthlyCents === 0;
             const included = plan.features.filter((f) => f.enabled);
             const listed = included.slice(0, MAX_LISTED);
             const rest = included.length - listed.length;
