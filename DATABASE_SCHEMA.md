@@ -35,3 +35,4 @@ Esboço das próximas fases: customers, customer_consents, customer_health_recor
 - `pricing_profiles(tenant_id pk, monthly_income_cents, days_per_week, hours_per_day, occupancy_bp, fixed_costs_cents, card_fee_bp, tax_bp, commission_bp, margin_bp, preset_slug)`: leitura por membros do negócio, escrita por quem gerencia.
 - `specialties.calculator_preset` → `calculator_presets.slug`.
 - `calculator_presets.services jsonb` (lista de `{name, minutes}`, máx. 40): serviços-modelo do segmento, sem preço.
+- `tenant_settings.page_blocks jsonb null` (array ≤30 itens, ≤40 KB): blocos da página pública. Recurso `page_blocks` em `features`/`plan_features`; trigger `tenant_settings_page_blocks_limit` aplica o limite.

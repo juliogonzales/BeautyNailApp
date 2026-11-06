@@ -62,3 +62,8 @@ Definir o primeiro superadmin, conferir o build da Vercel e testar página públ
 ## Atualização 2026-11-06 — calculadora simplificada
 - Implementado e migration aplicada. **Não validado por teste** (Vitest/build local indisponíveis; vale o build da Vercel). Tela não foi aberta no navegador por mim.
 - Pendente: "Salvar como serviço" (liga ao catálogo), teste A×B de `pricing_profiles`.
+
+## Atualização 2026-11-06 — construtor de página
+- Implementado: construtor de blocos, renderização pública, limite por plano, migration aplicada.
+- **Não validado por teste**: Vitest/build local indisponíveis; telas não abertas no navegador por mim. Falta teste A×B de RLS (`pricing_profiles`, `page_blocks`).
+- Pendente: rascunho/publicar separado, arrastar para reordenar, galeria (Storage), gestão de planos/produtos pela cliente.

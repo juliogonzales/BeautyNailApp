@@ -15,6 +15,7 @@ export const publicTenantSchema = z.object({
   accent_color: z.string().nullable(),
   specialties: z.array(z.string()),
   theme: z.unknown().optional(),
+  blocks: z.unknown().optional(),
   services: z.array(publicServiceSchema).default([]),
 });
 export type PublicTenant = z.infer<typeof publicTenantSchema>;

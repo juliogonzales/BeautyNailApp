@@ -27,3 +27,9 @@
 ## Calculadora simplificada (2026-11-06)
 - 4 perguntas, serviços-modelo por segmento (toque para adicionar), material em um campo, resultado imediato por serviço e resumo de descobertas.
 - Migration `20261106000001`: `calculator_presets.services`; editor em `/admin/calculadoras`.
+
+## Construtor de página e calculadora → catálogo (2026-11-06)
+- `/painel/pagina`: blocos editáveis, ordem, ocultar, pré-visualização; página pública renderiza os blocos.
+- Calculadora: botão "Salvar no catálogo".
+- Migration `20261106000002`: `tenant_settings.page_blocks`, recurso `page_blocks`, trigger de limite, `get_public_tenant` com blocos.
+- Painel: removido atalho "Serviços" duplicado; novo atalho "Montar minha página".

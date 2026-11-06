@@ -32,10 +32,10 @@ const STATUS_LABELS: Record<string, string> = {
 // Atalhos do painel. `href` só existe para o que já está pronto; o resto aparece como "Em breve".
 const SHORTCUTS: Array<{ title: string; text: string; href?: string }> = [
   { title: "Calculadora de preços", text: "Descubra quanto cobrar por serviço.", href: "/painel/calculadora" },
-  { title: "Serviços", text: "Cadastre o que você oferece, com preço e duração." },
   { title: "Clientes", text: "Ficha e histórico de cada cliente." },
   { title: "Agenda", text: "Seus horários e atendimentos." },
   { title: "Serviços", text: "Cadastre o que você oferece, com preço e duração.", href: "/painel/servicos" },
+  { title: "Montar minha página", text: "Escolha os blocos, edite os textos e veja como fica.", href: "/painel/pagina" },
   { title: "Aparência da página", text: "Modelo e cores da sua página pública.", href: "/painel/aparencia" },
   { title: "Perfil público", text: "WhatsApp, Instagram e cidade que aparecem na sua página.", href: "/painel/perfil" },
 ];

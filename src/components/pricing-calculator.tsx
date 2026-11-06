@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
-import { savePricingProfileAction } from "@/app/painel/calculadora/actions";
+import { useActionState, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import { savePricedServiceAction, savePricingProfileAction } from "@/app/painel/calculadora/actions";
 import { FormAlert, inputClass } from "@/components/form-bits";
 import { formatBRL } from "@/lib/money";
 import { parseBRLToCents, parseWholeNumber } from "@/lib/pricing";
@@ -87,6 +88,24 @@ function evalItem(profile: PricingProfile | null, it: Item): Eval {
     perHourCurrent: diagnosis ? contributionPerHour(diagnosis.breakdown) : null,
     perHourRecommended: contributionPerHour(bRec),
   };
+}
+
+function SaveToCatalog({ name, minutes, priceCents, costCents }: { name: string; minutes: number; priceCents: number; costCents: number }) {
+  const [pending, start] = useTransition();
+  const [result, setResult] = useState<{ error?: string; message?: string } | undefined>();
+  return (
+    <div className="mt-3">
+      <button
+        type="button" disabled={pending}
+        onClick={() => start(async () => setResult((await savePricedServiceAction({ name, minutes, priceCents, costCents })) ?? undefined))}
+        className="rounded-lg border border-cocoa px-3 py-2 text-sm font-medium text-cocoa hover:bg-nude focus:outline-none focus:ring-2 focus:ring-cocoa disabled:opacity-50"
+      >
+        {pending ? "Salvando…" : `Salvar no catálogo por ${formatBRL(priceCents)}`}
+      </button>
+      <FormAlert error={result?.error} message={result?.message} />
+      {result?.message ? <Link href="/painel/servicos" className="text-sm text-cocoa underline">Ver meus serviços</Link> : null}
+    </div>
+  );
 }
 
 function Field(props: {
@@ -285,6 +304,7 @@ export function PricingCalculator({ presets, initialProfile, hasSavedProfile, ca
                           Preço de equilíbrio: {formatBRL(ev.price.minimumCents)} (abaixo disso você não paga o seu tempo). Abaixo de {formatBRL(ev.price.floorCents)}, prejuízo.
                         </p>
                       </div>
+                      <SaveToCatalog name={it.name} minutes={ev.minutes} priceCents={ev.recommendedCents} costCents={ev.materialsCents} />
                       <Field id={`cur-${it.id}`} prefix="R$" label="Quanto você cobra hoje? (opcional)" hint="Mostramos o que sobra de verdade." value={it.current} onChange={(v) => setItem(it.id, { current: v })} placeholder="60" />
                       {ev.diagnosis ? (
                         <div className={`rounded-lg border p-3 text-sm ${STATUS[ev.diagnosis.status].cls}`}>

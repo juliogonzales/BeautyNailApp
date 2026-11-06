@@ -1,10 +1,14 @@
+import { BlocksPage } from "@/components/public-blocks";
 import { formatBRL } from "@/lib/money";
+import { parseBlocks } from "@/lib/page-blocks";
 import { instagramUrl, whatsappContactLink, type PublicTenant } from "@/lib/public-page";
 import { formatDuration, groupByCategory } from "@/lib/services";
 import { FONT_STACKS, RADIUS_PX, readableOn, type ThemeConfig } from "@/lib/theme";
 
 /** Aparência da página pública a partir de um modelo. Usada na página real e na pré-visualização do console. */
 export function PublicPageView({ tenant, theme }: { tenant: PublicTenant; theme: ThemeConfig }) {
+  const customBlocks = parseBlocks(tenant.blocks);
+  if (customBlocks) return <BlocksPage tenant={tenant} theme={theme} blocks={customBlocks} />;
   const c = theme.colors;
   const r = RADIUS_PX[theme.radius];
   const whatsapp = theme.show.whatsapp ? whatsappContactLink(tenant.whatsapp, `Olá! Vim pela página do ${tenant.business_name}.`) : null;
