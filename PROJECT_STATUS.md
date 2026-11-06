@@ -53,3 +53,8 @@ Definir o primeiro superadmin, conferir o build da Vercel e testar página públ
 ## Situação em 2026-11-03
 - GitHub: repositório anexado à sessão com permissão de escrita; branch `develop` criada. A `main` fica só para produção (merge via PR).
 - npm/pip: registros de pacotes inacessíveis na sessão de desenvolvimento (DNS). O app Next.js ainda não pôde ser instalado, compilado nem testado aqui.
+
+## Atualização 2026-11-05 — calculadora por segmento
+- Implementado: calculadora guiada, perfil salvo, segmentos no admin, migration aplicada no Supabase.
+- **Não validado por teste**: Vitest e build local não rodam na sessão (sem npm); validação depende da CI/Vercel. Falta teste A×B de RLS para `pricing_profiles`.
+- Próximo: catálogo de serviços, construtor de página (no-code), análise de competitividade.

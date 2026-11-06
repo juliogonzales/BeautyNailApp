@@ -168,3 +168,33 @@ export function csvCell(value: string | number | null | undefined): string {
   if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return `"${s.replace(/"/g, '""')}"`;
 }
+
+/** Segmentos da calculadora. Materiais: uma linha por item, "Nome | unidade" (unidade opcional, padrão "un"). */
+export const presetSchema = z.object({
+  name: z.string().trim().min(2, "Informe o nome.").max(60),
+  description: z.string().trim().max(200).optional().transform((v) => v || null),
+  sortOrder: whole("Ordem", 0, 1000),
+});
+
+export const presetSlugSchema = z.string().trim().regex(/^[a-z0-9-]{2,40}$/, "Segmento inválido.");
+
+export function parseMaterialLines(text: string): Array<{ name: string; unit: string }> {
+  return text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, 40)
+    .map((l) => {
+      const [name, unit] = l.split("|").map((x) => x.trim());
+      return { name: (name ?? "").slice(0, 60), unit: (unit || "un").slice(0, 10) };
+    })
+    .filter((m) => m.name.length > 0);
+}
+
+export function materialsToText(materials: unknown): string {
+  if (!Array.isArray(materials)) return "";
+  return materials
+    .filter((m): m is { name: string; unit?: string } => typeof m?.name === "string")
+    .map((m) => `${m.name} | ${typeof m.unit === "string" ? m.unit : "un"}`)
+    .join("\n");
+}

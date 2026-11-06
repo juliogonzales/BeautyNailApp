@@ -1,49 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculatePrice, parseBRLToCents, parsePercentToBp, parseWholeNumber } from "@/lib/pricing";
-
-const base = {
-  materialCostCents: 1250,
-  durationMinutes: 90,
-  hourlyRateCents: 3000,
-  monthlyFixedCostsCents: 80000,
-  servicesPerMonth: 60,
-  cardFeeBp: 0,
-  marginBp: 0,
-};
-
-describe("calculatePrice", () => {
-  it("soma material + mão de obra + custos fixos quando não há taxa nem margem", () => {
-    // trabalho: 3000 * 90 / 60 = 4500; fixos: 80000 / 60 = 1333,33 -> 1333; custo: 1250 + 4500 + 1333 = 7083
-    expect(calculatePrice(base)).toEqual({
-      ok: true,
-      laborCents: 4500,
-      overheadCents: 1333,
-      costCents: 7083,
-      priceCents: 7083,
-      cardFeeCents: 0,
-      profitCents: 0,
-    });
-  });
-
-  it("aplica taxa da maquininha e margem sobre o preço final", () => {
-    const r = calculatePrice({ materialCostCents: 5000, durationMinutes: 0, hourlyRateCents: 0, monthlyFixedCostsCents: 0, servicesPerMonth: 0, cardFeeBp: 500, marginBp: 2000 });
-    // 5000 / (1 - 0,25) = 6666,67 -> 6667
-    expect(r).toMatchObject({ ok: true, costCents: 5000, priceCents: 6667, cardFeeCents: 333, profitCents: 1334 });
-  });
-
-  it("não divide custos fixos por zero atendimentos", () => {
-    expect(calculatePrice({ ...base, servicesPerMonth: 0 })).toMatchObject({ ok: true, overheadCents: 0 });
-  });
-
-  it("recusa taxa + margem de 100% ou mais", () => {
-    expect(calculatePrice({ ...base, cardFeeBp: 5000, marginBp: 5000 })).toEqual({ ok: false, error: "invalid_percent" });
-  });
-
-  it("recusa valores negativos ou fracionários", () => {
-    expect(calculatePrice({ ...base, materialCostCents: -1 })).toEqual({ ok: false, error: "invalid_input" });
-    expect(calculatePrice({ ...base, durationMinutes: 1.5 })).toEqual({ ok: false, error: "invalid_input" });
-  });
-});
+import { parseBRLToCents, parsePercentToBp, parseWholeNumber } from "@/lib/pricing";
 
 describe("parseBRLToCents", () => {
   it.each([

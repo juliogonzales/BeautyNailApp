@@ -9,7 +9,8 @@ export default async function SpecialtiesAdminPage({ searchParams }: { searchPar
   const params = await searchParams;
   const { supabase } = await requireAdminPage("especialidades");
   const { data: items, error } = await supabase
-    .from("specialties").select("id, slug, name, is_active, sort_order").order("sort_order");
+    .from("specialties").select("id, slug, name, is_active, sort_order, calculator_preset").order("sort_order");
+  const { data: presets } = await supabase.from("calculator_presets").select("slug, name").order("sort_order");
 
   return (
     <main className="space-y-6">
@@ -20,9 +21,15 @@ export default async function SpecialtiesAdminPage({ searchParams }: { searchPar
         <ul className="divide-y divide-nude">
           {(items ?? []).map((s) => (
             <li key={s.id} className="py-3">
-              <form action={updateSpecialtyAction} className="grid items-end gap-2 sm:grid-cols-6">
+              <form action={updateSpecialtyAction} className="grid items-end gap-2 sm:grid-cols-7">
                 <input type="hidden" name="id" value={s.id} />
-                <div className="sm:col-span-3"><Field label={`Nome (${s.slug})`}><input name="name" required defaultValue={s.name} className={adminInput} /></Field></div>
+                <div className="sm:col-span-2"><Field label={`Nome (${s.slug})`}><input name="name" required defaultValue={s.name} className={adminInput} /></Field></div>
+                <Field label="Calculadora">
+                  <select name="calculatorPreset" defaultValue={s.calculator_preset ?? ""} className={adminInput}>
+                    <option value="">Nenhuma</option>
+                    {(presets ?? []).map((p) => <option key={p.slug} value={p.slug}>{p.name}</option>)}
+                  </select>
+                </Field>
                 <Field label="Ordem"><input name="sortOrder" inputMode="numeric" defaultValue={s.sort_order} className={adminInput} /></Field>
                 <label className="flex items-center gap-2 pb-2 text-sm text-cocoa"><input type="checkbox" name="isActive" defaultChecked={s.is_active} className="h-4 w-4" /> Ativa</label>
                 <button type="submit" className={adminButtonGhost}>Salvar</button>

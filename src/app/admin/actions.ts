@@ -15,7 +15,10 @@ import {
   grantSchema,
   parseBenefitRows,
   parseGuaranteeRows,
+  parseMaterialLines,
   planSchema,
+  presetSchema,
+  presetSlugSchema,
   specialtySchema,
   tenantStatusSchema,
 } from "@/lib/admin-validation";
@@ -178,7 +181,10 @@ export async function updateSpecialtyAction(formData: FormData) {
   if (!parsed.success) back(path, "erro", firstIssue(parsed.error));
   const { data, error } = await supabase
     .from("specialties")
-    .update({ name: parsed.data.name, sort_order: parsed.data.sortOrder, is_active: formData.get("isActive") === "on" })
+    .update({
+      name: parsed.data.name, sort_order: parsed.data.sortOrder, is_active: formData.get("isActive") === "on",
+      calculator_preset: presetSlugSchema.safeParse(str(formData, "calculatorPreset")).data ?? null,
+    })
     .eq("id", id.data)
     .select("id");
   if (error) back(path, "erro", friendlyAdminDbError(error.message));
@@ -371,4 +377,42 @@ export async function setDefaultTemplateAction(formData: FormData) {
   if (error) back(path, "erro", friendlyAdminDbError(error.message));
   revalidatePath("/", "layout");
   back(path, "ok", "Este modelo agora é o padrão de todos os negócios sem escolha própria.");
+}
+
+// ---------------------------------------------------------------- Calculadoras (segmentos)
+
+export async function updateCalculatorPresetAction(formData: FormData) {
+  const path = "/admin/calculadoras";
+  const { supabase } = await gate("calculadoras", path);
+  const slug = presetSlugSchema.safeParse(str(formData, "slug"));
+  if (!slug.success) back(path, "erro", "Segmento inválido.");
+  const parsed = presetSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) back(path, "erro", firstIssue(parsed.error));
+  const { data, error } = await supabase
+    .from("calculator_presets")
+    .update({
+      name: parsed.data.name, description: parsed.data.description, sort_order: parsed.data.sortOrder,
+      materials: parseMaterialLines(str(formData, "materials")),
+      use_commission: formData.get("useCommission") === "on", is_active: formData.get("isActive") === "on",
+    })
+    .eq("slug", slug.data)
+    .select("slug");
+  if (error) back(path, "erro", friendlyAdminDbError(error.message));
+  if (!data?.length) back(path, "erro", "Segmento não encontrado ou sem permissão.");
+  back(path, "ok", "Segmento salvo.");
+}
+
+export async function createCalculatorPresetAction(formData: FormData) {
+  const path = "/admin/calculadoras";
+  const { supabase } = await gate("calculadoras", path);
+  const slug = presetSlugSchema.safeParse(str(formData, "slug").toLowerCase());
+  if (!slug.success) back(path, "erro", "Slug: 2 a 40 letras minúsculas, números e hífen.");
+  const parsed = presetSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) back(path, "erro", firstIssue(parsed.error));
+  const { error } = await supabase.from("calculator_presets").insert({
+    slug: slug.data, name: parsed.data.name, description: parsed.data.description, sort_order: parsed.data.sortOrder,
+    materials: parseMaterialLines(str(formData, "materials")), use_commission: formData.get("useCommission") === "on",
+  });
+  if (error) back(path, "erro", friendlyAdminDbError(error.message));
+  back(path, "ok", "Segmento criado.");
 }

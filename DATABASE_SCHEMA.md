@@ -29,3 +29,8 @@ RPCs novas: `admin_set_feature_override`, `admin_clear_feature_override`, `admin
 Dados de referência: 4 planos (Esmalte/Gel/Fibra/Master), 21 features (inclui `dashboard`, liberado em todos os planos), 16 especialidades, ~70 slugs reservados.
 
 Esboço das próximas fases: customers, customer_consents, customer_health_records (tabela separada), anamnesis_*, services, appointments, availability_rules, financeiro, estoque etc. — sempre com `tenant_id` + RLS + teste de isolamento.
+
+## calculator_presets / pricing_profiles (2026-11-05)
+- `calculator_presets(slug pk, name, description, materials jsonb [{name,unit}], use_commission, is_active, sort_order)`: leitura para todos os logados (ativos), escrita só superadmin; auditada.
+- `pricing_profiles(tenant_id pk, monthly_income_cents, days_per_week, hours_per_day, occupancy_bp, fixed_costs_cents, card_fee_bp, tax_bp, commission_bp, margin_bp, preset_slug)`: leitura por membros do negócio, escrita por quem gerencia.
+- `specialties.calculator_preset` → `calculator_presets.slug`.
