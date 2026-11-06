@@ -7,7 +7,8 @@ import { formatBRL } from "@/lib/money";
 import { parseBRLToCents, parseWholeNumber } from "@/lib/pricing";
 import { profileFormSchema, toPricingProfile, type ProfileForm } from "@/lib/pricing-profile";
 import {
-  diagnosePrice, hourCostCents, materialLineCost, parseQuantityHundredths, priceService, type MaterialLine,
+  breakdownAt, diagnosePrice, hourCostCents, materialLineCost, parseQuantityHundredths, priceService,
+  productiveMinutesPerMonth, type PriceDiagnosis, type PricingProfile, type ServicePrice,
 } from "@/lib/service-pricing";
 
 export type CalculatorPreset = {
@@ -16,42 +17,103 @@ export type CalculatorPreset = {
   description: string | null;
   useCommission: boolean;
   materials: Array<{ name: string; unit: string }>;
+  services: Array<{ name: string; minutes: number }>;
 };
 
 type Line = { id: number; name: string; unit: string; price: string; size: string; used: string };
+type Item = { id: number; name: string; minutes: string; material: string; current: string; lines: Line[] | null };
 
-type Props = {
-  presets: CalculatorPreset[];
-  initialProfile: ProfileForm;
-  hasSavedProfile: boolean;
-  canSave: boolean;
-};
+type Props = { presets: CalculatorPreset[]; initialProfile: ProfileForm; hasSavedProfile: boolean; canSave: boolean };
 
-let lineSeq = 0;
-const newLine = (name = "", unit = "un"): Line => ({ id: ++lineSeq, name, unit, price: "", size: "", used: "" });
-const linesFor = (p: CalculatorPreset | undefined): Line[] => (p ? p.materials.map((m) => newLine(m.name, m.unit)) : []);
+let seq = 0;
+const newLine = (name = "", unit = "un"): Line => ({ id: ++seq, name, unit, price: "", size: "", used: "" });
+const newItem = (name = "", minutes = ""): Item => ({ id: ++seq, name, minutes, material: "", current: "", lines: null });
 
-function TextField(props: {
-  id: string; name?: string; label: string; hint?: string; value: string; onChange: (v: string) => void; placeholder?: string; inputMode?: "decimal" | "numeric" | "text";
+const fmtDuration = (min: number) => (min < 60 ? `${min} min` : `${Math.floor(min / 60)}h${min % 60 ? String(min % 60).padStart(2, "0") : ""}`);
+const fmtHours = (min: number) => `${Math.round(min / 60)} h`;
+
+type OkPrice = Extract<ServicePrice, { ok: true }>;
+type Eval =
+  | { state: "incomplete" }
+  | { state: "invalid"; message: string }
+  | {
+      state: "ok"; minutes: number; materialsCents: number; price: OkPrice; recommendedCents: number;
+      currentCents: number | null; diagnosis: PriceDiagnosis | null; capacity: number;
+      needAtRecommended: number | null; needAtCurrent: number | null; perHourCurrent: number | null; perHourRecommended: number;
+    };
+
+/** Calcula um serviço: tudo que a tela mostra para ele sai daqui (funções puras já testadas em service-pricing). */
+function evalItem(profile: PricingProfile | null, it: Item): Eval {
+  const minutes = parseWholeNumber(it.minutes);
+  if (!profile || minutes === null || minutes <= 0) return { state: "incomplete" };
+  if (minutes > 1440) return { state: "invalid", message: "O tempo deve ser de até 1.440 minutos." };
+
+  let materialsCents = 0;
+  const filledLines = (it.lines ?? []).filter((l) => [l.price, l.size, l.used].some((v) => v.trim() !== ""));
+  if (filledLines.length > 0) {
+    for (const l of filledLines) {
+      const price = parseBRLToCents(l.price);
+      const size = parseQuantityHundredths(l.size);
+      const used = parseQuantityHundredths(l.used);
+      if (price === null || size === null || used === null) return { state: "invalid", message: `Confira o material "${l.name || "sem nome"}": preencha os três campos.` };
+      materialsCents += materialLineCost({ packagePriceCents: price, packageSizeHundredths: size, usedHundredths: used });
+    }
+  } else if (it.material.trim() !== "") {
+    const m = parseBRLToCents(it.material);
+    if (m === null) return { state: "invalid", message: "Material: use só números (vírgula para centavos)." };
+    materialsCents = m;
+  }
+
+  const input = { minutes, materialsCents, extraCents: 0 };
+  const price = priceService(profile, input);
+  if (!price.ok) {
+    return { state: "invalid", message: price.error === "invalid_percent" ? "Taxa, imposto, comissão e lucro somados precisam ficar abaixo de 100%." : "Confira os dados do seu negócio." };
+  }
+  const recommendedCents = price.roundedCents;
+  const contributionPerHour = (b: { timeCents: number; profitCents: number }) => Math.round(((b.timeCents + b.profitCents) * 60) / minutes);
+  const contribution = (b: { timeCents: number; profitCents: number }) => b.timeCents + b.profitCents;
+  const goal = profile.monthlyIncomeCents + profile.fixedCostsCents;
+  const need = (c: number) => (c > 0 ? Math.ceil(goal / c) : null);
+
+  const bRec = breakdownAt(profile, recommendedCents, input, price.timeCostCents);
+  const currentCents = it.current.trim() === "" ? null : parseBRLToCents(it.current);
+  const diagnosis = currentCents && currentCents > 0 ? diagnosePrice(profile, input, currentCents) : null;
+
+  return {
+    state: "ok", minutes, materialsCents, price, recommendedCents, currentCents, diagnosis,
+    capacity: Math.floor(productiveMinutesPerMonth(profile) / minutes),
+    needAtRecommended: need(contribution(bRec)),
+    needAtCurrent: diagnosis ? need(contribution(diagnosis.breakdown)) : null,
+    perHourCurrent: diagnosis ? contributionPerHour(diagnosis.breakdown) : null,
+    perHourRecommended: contributionPerHour(bRec),
+  };
+}
+
+function Field(props: {
+  id: string; name?: string; label: string; hint?: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; inputMode?: "decimal" | "numeric" | "text"; prefix?: string;
 }) {
   return (
     <div>
       <label htmlFor={props.id} className="text-sm font-medium text-cocoa">{props.label}</label>
-      <input
-        id={props.id} name={props.name} inputMode={props.inputMode ?? "decimal"} autoComplete="off" value={props.value}
-        onChange={(e) => props.onChange(e.target.value)} placeholder={props.placeholder} className={inputClass}
-        aria-describedby={props.hint ? `${props.id}-hint` : undefined}
-      />
+      <div className="relative">
+        {props.prefix ? <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-graphite/60">{props.prefix}</span> : null}
+        <input
+          id={props.id} name={props.name} inputMode={props.inputMode ?? "decimal"} autoComplete="off" value={props.value}
+          onChange={(e) => props.onChange(e.target.value)} placeholder={props.placeholder}
+          className={`${inputClass} ${props.prefix ? "pl-9" : ""}`} aria-describedby={props.hint ? `${props.id}-hint` : undefined}
+        />
+      </div>
       {props.hint ? <p id={`${props.id}-hint`} className="mt-1 text-xs text-graphite/70">{props.hint}</p> : null}
     </div>
   );
 }
 
-const STATUS_TEXT = {
-  loss: { tone: "text-red-800", text: "Com esse preço você tem prejuízo: nem o material e as taxas ficam cobertos." },
-  no_pay: { tone: "text-red-800", text: "Esse preço cobre o material, mas não paga o seu tempo: você trabalha de graça ou tira do seu bolso." },
-  below_goal: { tone: "text-amber-800", text: "Paga o seu tempo, mas o lucro fica abaixo da meta que você definiu." },
-  ok: { tone: "text-green-800", text: "Esse preço atinge a sua meta de lucro." },
+const STATUS = {
+  loss: { cls: "border-red-200 bg-red-50 text-red-900", text: "Prejuízo: o preço nem cobre o material e as taxas." },
+  no_pay: { cls: "border-red-200 bg-red-50 text-red-900", text: "Você não paga o seu tempo: trabalha de graça ou tira do próprio bolso." },
+  below_goal: { cls: "border-amber-200 bg-amber-50 text-amber-900", text: "Paga o seu tempo, mas o lucro fica abaixo da sua meta." },
+  ok: { cls: "border-green-200 bg-green-50 text-green-900", text: "Esse preço está bom: atinge a sua meta." },
 } as const;
 
 export function PricingCalculator({ presets, initialProfile, hasSavedProfile, canSave }: Props) {
@@ -62,58 +124,49 @@ export function PricingCalculator({ presets, initialProfile, hasSavedProfile, ca
 
   const [presetSlug, setPresetSlug] = useState(initialProfile.presetSlug || presets[0]?.slug || "");
   const preset = presets.find((p) => p.slug === presetSlug);
-  const [lines, setLines] = useState<Line[]>(() => linesFor(preset));
-  const [minutes, setMinutes] = useState("");
-  const [extra, setExtra] = useState("");
-  const [currentPrice, setCurrentPrice] = useState("");
+  const [items, setItems] = useState<Item[]>(() => {
+    const first = presets.find((p) => p.slug === (initialProfile.presetSlug || presets[0]?.slug))?.services[0];
+    return first ? [newItem(first.name, String(first.minutes))] : [];
+  });
+  const setItem = (id: number, patch: Partial<Item>) => setItems((cur) => cur.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+  const setLine = (itemId: number, lineId: number, k: keyof Line, v: string) =>
+    setItems((cur) => cur.map((i) => (i.id === itemId ? { ...i, lines: (i.lines ?? []).map((l) => (l.id === lineId ? { ...l, [k]: v } : l)) } : i)));
 
   const changePreset = (slug: string) => {
-    const hasData = lines.some((l) => l.price || l.size || l.used);
-    if (hasData && !window.confirm("Trocar de segmento substitui a lista de materiais. Continuar?")) return;
+    if (items.length > 0 && !window.confirm("Trocar de segmento limpa a lista de serviços abaixo. Continuar?")) return;
     setPresetSlug(slug);
-    setLines(linesFor(presets.find((p) => p.slug === slug)));
+    const first = presets.find((p) => p.slug === slug)?.services[0];
+    setItems(first ? [newItem(first.name, String(first.minutes))] : []);
   };
-  const setLine = (id: number, k: keyof Line, v: string) => setLines((cur) => cur.map((l) => (l.id === id ? { ...l, [k]: v } : l)));
 
   const parsedProfile = useMemo(() => profileFormSchema.safeParse({ ...profile, presetSlug }), [profile, presetSlug]);
   const pricingProfile = parsedProfile.success ? toPricingProfile(parsedProfile.data) : null;
   const hour = pricingProfile ? hourCostCents(pricingProfile) : null;
+  const monthlyMinutes = pricingProfile ? productiveMinutesPerMonth(pricingProfile) : 0;
 
-  // Cada linha de material: vazia (ignorada), completa (conta) ou incompleta/ inválida (avisa).
-  const lineStates = lines.map((l) => {
-    const filled = [l.price, l.size, l.used].some((v) => v.trim() !== "");
-    if (!filled) return { line: l, state: "empty" as const, cents: 0 };
-    const price = parseBRLToCents(l.price);
-    const size = parseQuantityHundredths(l.size);
-    const used = parseQuantityHundredths(l.used);
-    if (price === null || size === null || used === null) return { line: l, state: "invalid" as const, cents: 0 };
-    const m: MaterialLine = { packagePriceCents: price, packageSizeHundredths: size, usedHundredths: used };
-    return { line: l, state: "ok" as const, cents: materialLineCost(m) };
-  });
-  const materialsCents = lineStates.reduce((s, l) => s + l.cents, 0);
-  const anyInvalidLine = lineStates.some((l) => l.state === "invalid");
+  const evals = useMemo(() => items.map((it) => ({ it, ev: evalItem(pricingProfile, it) })), [items, pricingProfile]);
+  const okEvals = evals.filter((e): e is { it: Item; ev: Extract<Eval, { state: "ok" }> } => e.ev.state === "ok");
 
-  const mins = minutes.trim() === "" ? null : parseWholeNumber(minutes);
-  const extraCents = extra.trim() === "" ? 0 : parseBRLToCents(extra);
-  const current = currentPrice.trim() === "" ? null : parseBRLToCents(currentPrice);
+  // "Descobertas": só com o que a pessoa informou (preço atual).
+  const withCurrent = okEvals.filter((e) => e.ev.perHourCurrent !== null);
+  const ranked = [...withCurrent].sort((a, b) => (b.ev.perHourCurrent ?? 0) - (a.ev.perHourCurrent ?? 0));
+  const bad = withCurrent.filter((e) => e.ev.diagnosis && (e.ev.diagnosis.status === "loss" || e.ev.diagnosis.status === "no_pay"));
+  const tooMany = withCurrent.filter((e) => e.ev.needAtCurrent === null || e.ev.needAtCurrent > e.ev.capacity);
 
-  const input = mins !== null && mins > 0 && extraCents !== null ? { minutes: mins, materialsCents, extraCents } : null;
-  const result = pricingProfile && input && !anyInvalidLine ? priceService(pricingProfile, input) : null;
-  const diagnosis = pricingProfile && input && current && current > 0 ? diagnosePrice(pricingProfile, input, current) : null;
-
+  const addable = (preset?.services ?? []).filter((s) => !items.some((i) => i.name === s.name));
   const showCommission = Boolean(preset?.useCommission) || profile.commission.trim() !== "";
 
   return (
     <div className="space-y-6">
-      {/* 1. O negócio */}
+      {/* 1. Seu negócio: 4 perguntas; o resto já vem com valores comuns */}
       <section className="rounded-xl border border-sand bg-white p-5" aria-labelledby="neg-title">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 id="neg-title" className="text-sm uppercase tracking-widest text-gold">1. O seu negócio</h2>
+            <h2 id="neg-title" className="text-sm uppercase tracking-widest text-gold">1. Seu negócio</h2>
             {!editing && hour !== null ? (
-              <p className="mt-2 text-cocoa">Sua hora de atendimento precisa render <span className="font-serif text-2xl">{formatBRL(hour)}</span></p>
+              <p className="mt-2 text-cocoa">Cada hora com cliente precisa render <span className="font-serif text-2xl">{formatBRL(hour)}</span></p>
             ) : (
-              <p className="mt-2 text-sm text-graphite/80">Preencha uma vez. Depois você só informa cada serviço.</p>
+              <p className="mt-2 text-sm text-graphite/80">Só 4 perguntas, uma única vez. O resto já vem preenchido com valores comuns.</p>
             )}
           </div>
           {!editing ? (
@@ -124,140 +177,175 @@ export function PricingCalculator({ presets, initialProfile, hasSavedProfile, ca
         {editing ? (
           <form action={saveAction} className="mt-4 space-y-4" noValidate>
             <input type="hidden" name="presetSlug" value={presetSlug} />
-            <TextField id="income" name="income" label="Quanto você quer retirar por mês (R$)" hint="O seu “salário” com o negócio." value={profile.income} onChange={(v) => setP("income", v)} placeholder="Ex.: 3000" />
+            <Field id="income" name="income" prefix="R$" label="Quanto você quer ganhar por mês?" hint="É o seu “salário”, o que você quer levar para casa." value={profile.income} onChange={(v) => setP("income", v)} placeholder="3000" />
+            <Field id="fixed" name="fixed" prefix="R$" label="Quanto você gasta por mês para trabalhar?" hint="Aluguel, luz, internet, contador, MEI… Se não sabe, deixe em branco por enquanto." value={profile.fixed} onChange={(v) => setP("fixed", v)} placeholder="800" />
             <div className="grid grid-cols-2 gap-3">
-              <TextField id="days" name="days" label="Dias por semana" inputMode="numeric" value={profile.days} onChange={(v) => setP("days", v)} />
-              <TextField id="hours" name="hours" label="Horas por dia" inputMode="numeric" value={profile.hours} onChange={(v) => setP("hours", v)} />
+              <Field id="days" name="days" label="Dias por semana" inputMode="numeric" value={profile.days} onChange={(v) => setP("days", v)} />
+              <Field id="hours" name="hours" label="Horas por dia" inputMode="numeric" value={profile.hours} onChange={(v) => setP("hours", v)} />
             </div>
-            <TextField id="occupancy" name="occupancy" label="Agenda ocupada (%)" hint="Das horas em que você trabalha, quantas estão com cliente? Ninguém lota 100%. Se não sabe, comece com 70." value={profile.occupancy} onChange={(v) => setP("occupancy", v)} />
-            <TextField id="fixed" name="fixed" label="Custos fixos do mês (R$)" hint="Aluguel, energia, internet, contador, MEI, produtos de uso geral." value={profile.fixed} onChange={(v) => setP("fixed", v)} placeholder="Ex.: 800" />
-            <div className="grid grid-cols-2 gap-3">
-              <TextField id="cardFee" name="cardFee" label="Taxa da maquininha (%)" hint="Em branco se não usa." value={profile.cardFee} onChange={(v) => setP("cardFee", v)} placeholder="Ex.: 4,5" />
-              <TextField id="tax" name="tax" label="Imposto sobre vendas (%)" hint="MEI paga valor fixo: ponha nos custos fixos. Confirme com seu contador." value={profile.tax} onChange={(v) => setP("tax", v)} />
-            </div>
-            {showCommission ? (
-              <TextField id="commission" name="commission" label="Comissão de quem atende (%)" hint="Parte do preço repassada ao profissional. Deixe em branco se você atende sozinha(o)." value={profile.commission} onChange={(v) => setP("commission", v)} placeholder="Ex.: 40" />
-            ) : (
-              <>
-                <input type="hidden" name="commission" value={profile.commission} />
-                <button type="button" onClick={() => setP("commission", "0")} className="text-sm text-cocoa underline">Tenho equipe: informar comissão</button>
-              </>
-            )}
-            <TextField id="margin" name="margin" label="Lucro do negócio (%)" hint="O que sobra do preço, além da sua retirada." value={profile.margin} onChange={(v) => setP("margin", v)} />
+
+            <details className="rounded-lg border border-nude p-3">
+              <summary className="cursor-pointer text-sm font-medium text-cocoa">Ajustar detalhes (opcional)</summary>
+              <div className="mt-3 space-y-4">
+                <Field id="occupancy" name="occupancy" label="Agenda ocupada (%)" hint="Das horas que você trabalha, quantas estão com cliente? Ninguém lota 100%. Padrão: 70." value={profile.occupancy} onChange={(v) => setP("occupancy", v)} />
+                <Field id="margin" name="margin" label="Lucro do negócio (%)" hint="O que sobra do preço, além do seu salário. Padrão: 20." value={profile.margin} onChange={(v) => setP("margin", v)} />
+                <div className="grid grid-cols-2 gap-3">
+                  <Field id="cardFee" name="cardFee" label="Taxa da maquininha (%)" hint="Em branco se não usa." value={profile.cardFee} onChange={(v) => setP("cardFee", v)} placeholder="4,5" />
+                  <Field id="tax" name="tax" label="Imposto (%)" hint="MEI paga valor fixo: ponha nos gastos do mês." value={profile.tax} onChange={(v) => setP("tax", v)} />
+                </div>
+                {showCommission ? (
+                  <Field id="commission" name="commission" label="Comissão de quem atende (%)" hint="Só se você tem equipe. Em branco se atende sozinha(o)." value={profile.commission} onChange={(v) => setP("commission", v)} placeholder="40" />
+                ) : (
+                  <>
+                    <input type="hidden" name="commission" value={profile.commission} />
+                    <button type="button" onClick={() => setP("commission", "0")} className="text-sm text-cocoa underline">Tenho equipe: informar comissão</button>
+                  </>
+                )}
+              </div>
+            </details>
+            {/* Os campos dentro do <details> fechado continuam no formulário; a comissão oculta vai por input hidden. */}
 
             {!parsedProfile.success ? <p role="alert" className="text-sm text-red-800">{parsedProfile.error.issues[0]?.message}</p> : null}
             <FormAlert error={saveState?.error} message={saveState?.message} />
+            {hour !== null ? (
+              <p className="rounded-lg bg-nude/60 p-3 text-sm text-cocoa" aria-live="polite">
+                Você atende cerca de <strong>{fmtHours(monthlyMinutes)}</strong> por mês com clientes. Por isso cada hora precisa render <strong>{formatBRL(hour)}</strong> para fechar o seu mês.
+              </p>
+            ) : null}
             <div className="flex flex-wrap gap-2">
               {canSave ? (
-                <button type="submit" disabled={!parsedProfile.success} className="rounded-lg bg-cocoa px-4 py-2.5 text-sm font-medium text-paper hover:bg-cocoa/90 focus:outline-none focus:ring-2 focus:ring-cocoa focus:ring-offset-2 disabled:opacity-50">Salvar meus dados</button>
+                <button type="submit" disabled={!parsedProfile.success} className="rounded-lg bg-cocoa px-4 py-2.5 text-sm font-medium text-paper hover:bg-cocoa/90 focus:outline-none focus:ring-2 focus:ring-cocoa focus:ring-offset-2 disabled:opacity-50">Salvar e continuar</button>
               ) : null}
               {hour !== null ? (
-                <button type="button" onClick={() => setEditing(false)} className="rounded-lg border border-sand px-4 py-2.5 text-sm text-cocoa hover:bg-nude focus:outline-none focus:ring-2 focus:ring-cocoa">Concluir</button>
+                <button type="button" onClick={() => setEditing(false)} className="rounded-lg border border-sand px-4 py-2.5 text-sm text-cocoa hover:bg-nude focus:outline-none focus:ring-2 focus:ring-cocoa">Continuar sem salvar</button>
               ) : null}
             </div>
-            {hour !== null ? <p className="text-sm text-graphite/80" aria-live="polite">Com esses dados, sua hora precisa render <strong>{formatBRL(hour)}</strong>.</p> : null}
           </form>
         ) : null}
       </section>
 
-      {/* 2. O serviço */}
+      {/* 2. Serviços: toque e ajuste */}
       <section className="rounded-xl border border-sand bg-white p-5" aria-labelledby="srv-title">
-        <h2 id="srv-title" className="text-sm uppercase tracking-widest text-gold">2. O serviço</h2>
-        <div className="mt-3 space-y-4">
-          <div>
-            <label htmlFor="segment" className="text-sm font-medium text-cocoa">Segmento</label>
-            <select id="segment" value={presetSlug} onChange={(e) => changePreset(e.target.value)} className={inputClass}>
-              {presets.map((p) => <option key={p.slug} value={p.slug}>{p.name}</option>)}
-            </select>
-            {preset?.description ? <p className="mt-1 text-xs text-graphite/70">{preset.description}</p> : null}
+        <h2 id="srv-title" className="text-sm uppercase tracking-widest text-gold">2. Seus serviços</h2>
+        <div className="mt-3">
+          <label htmlFor="segment" className="text-sm font-medium text-cocoa">O que você faz?</label>
+          <select id="segment" value={presetSlug} onChange={(e) => changePreset(e.target.value)} className={inputClass}>
+            {presets.map((p) => <option key={p.slug} value={p.slug}>{p.name}</option>)}
+          </select>
+        </div>
+
+        <ul className="mt-4 space-y-4">
+          {evals.map(({ it, ev }) => {
+            const filledMaterial = (it.lines ?? []).some((l) => [l.price, l.size, l.used].some((v) => v.trim() !== ""));
+            return (
+              <li key={it.id} className="rounded-xl border border-nude p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <input aria-label="Nome do serviço" value={it.name} onChange={(e) => setItem(it.id, { name: e.target.value })} placeholder="Nome do serviço" className={`${inputClass} mt-0 font-medium`} />
+                  <button type="button" onClick={() => setItems((cur) => cur.filter((i) => i.id !== it.id))} className="shrink-0 rounded-lg border border-sand px-2 py-2 text-xs text-cocoa hover:bg-nude focus:outline-none focus:ring-2 focus:ring-cocoa" aria-label={`Remover ${it.name || "serviço"}`}>Remover</button>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <Field id={`min-${it.id}`} label="Dura (minutos)" inputMode="numeric" value={it.minutes} onChange={(v) => setItem(it.id, { minutes: v })} placeholder="60" />
+                  <Field id={`mat-${it.id}`} prefix="R$" label="Gasto com material" hint={filledMaterial ? "Calculado abaixo." : "Quanto de produto vai em 1 atendimento."} value={filledMaterial ? "" : it.material} onChange={(v) => setItem(it.id, { material: v })} placeholder="0" />
+                </div>
+
+                <details className="mt-3" onToggle={(e) => { if (e.currentTarget.open && it.lines === null) setItem(it.id, { lines: (preset?.materials ?? []).map((m) => newLine(m.name, m.unit)) }); }}>
+                  <summary className="cursor-pointer text-sm text-cocoa underline">Não sei o gasto: calcular pelos materiais</summary>
+                  <div className="mt-3 space-y-3">
+                    <p className="text-xs text-graphite/70">Preencha só o que usa neste serviço: quanto pagou na embalagem, quanto ela traz e quanto você gasta em 1 atendimento. O resto fica em branco.</p>
+                    {(it.lines ?? []).map((l) => (
+                      <div key={l.id} className="rounded-lg bg-nude/40 p-3">
+                        <div className="flex gap-2">
+                          <input aria-label="Nome do material" value={l.name} onChange={(e) => setLine(it.id, l.id, "name", e.target.value)} placeholder="Material" className={`${inputClass} mt-0`} />
+                          <button type="button" onClick={() => setItem(it.id, { lines: (it.lines ?? []).filter((x) => x.id !== l.id) })} className="shrink-0 rounded-lg border border-sand px-2 text-xs text-cocoa hover:bg-nude" aria-label={`Remover ${l.name || "material"}`}>×</button>
+                        </div>
+                        <div className="mt-2 grid grid-cols-3 gap-2">
+                          <label className="text-xs text-graphite/80">Pagou (R$)<input inputMode="decimal" value={l.price} onChange={(e) => setLine(it.id, l.id, "price", e.target.value)} className={inputClass} placeholder="25" /></label>
+                          <label className="text-xs text-graphite/80">Traz ({l.unit})<input inputMode="decimal" value={l.size} onChange={(e) => setLine(it.id, l.id, "size", e.target.value)} className={inputClass} placeholder="500" /></label>
+                          <label className="text-xs text-graphite/80">Usa ({l.unit})<input inputMode="decimal" value={l.used} onChange={(e) => setLine(it.id, l.id, "used", e.target.value)} className={inputClass} placeholder="20" /></label>
+                        </div>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => setItem(it.id, { lines: [...(it.lines ?? []), newLine()] })} className="rounded-lg border border-sand px-3 py-2 text-sm text-cocoa hover:bg-nude">+ Outro material</button>
+                    {ev.state === "ok" ? <p className="text-sm text-cocoa">Material por atendimento: <strong>{formatBRL(ev.materialsCents)}</strong></p> : null}
+                  </div>
+                </details>
+
+                {/* Resultado do serviço, na hora */}
+                <div className="mt-4 border-t border-nude pt-4" aria-live="polite">
+                  {ev.state === "incomplete" ? (
+                    <p className="text-sm text-graphite/70">{pricingProfile ? "Informe quantos minutos dura para ver o preço." : "Responda as 4 perguntas do seu negócio para ver o preço."}</p>
+                  ) : ev.state === "invalid" ? (
+                    <p role="alert" className="text-sm text-red-800">{ev.message}</p>
+                  ) : (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm text-graphite/80">Cobre pelo menos</p>
+                        <p className="font-serif text-4xl text-cocoa">{formatBRL(ev.recommendedCents)}</p>
+                        <p className="text-xs text-graphite/70">
+                          Preço de equilíbrio: {formatBRL(ev.price.minimumCents)} (abaixo disso você não paga o seu tempo). Abaixo de {formatBRL(ev.price.floorCents)}, prejuízo.
+                        </p>
+                      </div>
+                      <Field id={`cur-${it.id}`} prefix="R$" label="Quanto você cobra hoje? (opcional)" hint="Mostramos o que sobra de verdade." value={it.current} onChange={(v) => setItem(it.id, { current: v })} placeholder="60" />
+                      {ev.diagnosis ? (
+                        <div className={`rounded-lg border p-3 text-sm ${STATUS[ev.diagnosis.status].cls}`}>
+                          <p className="font-medium">{STATUS[ev.diagnosis.status].text}</p>
+                          <p className="mt-1">
+                            Dos {formatBRL(ev.diagnosis.breakdown.priceCents)}, sobram <strong>{formatBRL(ev.diagnosis.breakdown.profitCents)}</strong> de lucro depois de pagar material, taxas e o seu tempo.
+                            {ev.needAtCurrent !== null ? <> Para fechar o mês com esse preço, são <strong>{ev.needAtCurrent}</strong> atendimentos (cabem {ev.capacity} na sua agenda).</> : null}
+                          </p>
+                        </div>
+                      ) : it.current.trim() !== "" ? <p role="alert" className="text-sm text-red-800">Use só números (vírgula para centavos).</p> : null}
+                    </div>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="mt-4">
+          <p className="text-sm text-graphite/80">{addable.length > 0 ? "Toque para adicionar:" : "Adicione outro serviço:"}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {addable.map((s) => (
+              <button key={s.name} type="button" onClick={() => setItems((cur) => [...cur, newItem(s.name, String(s.minutes))])} className="rounded-full border border-sand px-3 py-1.5 text-sm text-cocoa hover:bg-nude focus:outline-none focus:ring-2 focus:ring-cocoa">
+                + {s.name} <span className="text-graphite/60">({fmtDuration(s.minutes)})</span>
+              </button>
+            ))}
+            <button type="button" onClick={() => setItems((cur) => [...cur, newItem()])} className="rounded-full border border-dashed border-sand px-3 py-1.5 text-sm text-cocoa hover:bg-nude focus:outline-none focus:ring-2 focus:ring-cocoa">+ Outro serviço</button>
           </div>
-          <TextField id="minutes" label="Tempo do atendimento (minutos)" hint="Do início ao fim, incluindo preparo e limpeza." value={minutes} onChange={setMinutes} inputMode="numeric" placeholder="Ex.: 60" />
-
-          <fieldset>
-            <legend className="text-sm font-medium text-cocoa">Materiais usados</legend>
-            <p className="mt-1 text-xs text-graphite/70">Para cada item, diga quanto custou a embalagem, quanto ela traz e quanto você usa em um atendimento. Deixe em branco o que não usa.</p>
-            <ul className="mt-3 space-y-3">
-              {lineStates.map(({ line, state, cents }) => (
-                <li key={line.id} className="rounded-lg border border-nude p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <input aria-label="Nome do material" value={line.name} onChange={(e) => setLine(line.id, "name", e.target.value)} placeholder="Nome do material" className={`${inputClass} mt-0`} />
-                    <button type="button" onClick={() => setLines((cur) => cur.filter((l) => l.id !== line.id))} className="shrink-0 rounded-lg border border-sand px-2 py-2 text-xs text-cocoa hover:bg-nude" aria-label={`Remover ${line.name || "material"}`}>Remover</button>
-                  </div>
-                  <div className="mt-2 grid grid-cols-3 gap-2">
-                    <label className="text-xs text-graphite/80">Embalagem (R$)
-                      <input inputMode="decimal" value={line.price} onChange={(e) => setLine(line.id, "price", e.target.value)} className={inputClass} placeholder="Ex.: 25" />
-                    </label>
-                    <label className="text-xs text-graphite/80">Traz ({line.unit})
-                      <input inputMode="decimal" value={line.size} onChange={(e) => setLine(line.id, "size", e.target.value)} className={inputClass} placeholder="Ex.: 500" />
-                    </label>
-                    <label className="text-xs text-graphite/80">Uso ({line.unit})
-                      <input inputMode="decimal" value={line.used} onChange={(e) => setLine(line.id, "used", e.target.value)} className={inputClass} placeholder="Ex.: 20" />
-                    </label>
-                  </div>
-                  {state === "invalid" ? <p role="alert" className="mt-1 text-xs text-red-800">Preencha os três campos com números (ou apague).</p> : null}
-                  {state === "ok" ? <p className="mt-1 text-xs text-graphite/70">Custo por atendimento: {formatBRL(cents)}</p> : null}
-                </li>
-              ))}
-            </ul>
-            <button type="button" onClick={() => setLines((cur) => [...cur, newLine()])} className="mt-3 rounded-lg border border-sand px-3 py-2 text-sm text-cocoa hover:bg-nude focus:outline-none focus:ring-2 focus:ring-cocoa">+ Adicionar material</button>
-            <p className="mt-2 text-sm text-cocoa">Material por atendimento: <strong>{formatBRL(materialsCents)}</strong></p>
-          </fieldset>
-
-          <TextField id="extra" label="Outros custos do atendimento (R$)" hint="Ex.: deslocamento, taxa de aplicativo. Em branco se não há." value={extra} onChange={setExtra} placeholder="Ex.: 10" />
+          {preset?.services.length ? <p className="mt-2 text-xs text-graphite/70">Os tempos são médias comuns; ajuste para o seu jeito de trabalhar.</p> : null}
         </div>
       </section>
 
-      {/* 3. Resultado */}
-      <section aria-live="polite" className="rounded-xl border border-sand bg-white p-5" aria-labelledby="res-title">
-        <h2 id="res-title" className="text-sm uppercase tracking-widest text-gold">3. Quanto cobrar</h2>
-        {!parsedProfile.success ? (
-          <p className="mt-2 text-sm text-graphite/70">Complete “O seu negócio” para calcular.</p>
-        ) : anyInvalidLine ? (
-          <p role="alert" className="mt-2 text-sm text-red-800">Confira os materiais: há linhas incompletas.</p>
-        ) : mins === null || mins === 0 || extraCents === null ? (
-          <p className="mt-2 text-sm text-graphite/70">{mins === null && minutes.trim() !== "" ? "Tempo: use só números inteiros." : "Informe o tempo do atendimento para ver o preço."}</p>
-        ) : !result ? (
-          <p className="mt-2 text-sm text-graphite/70">Preencha os dados para ver o preço.</p>
-        ) : !result.ok ? (
-          <p role="alert" className="mt-2 text-sm text-red-800">
-            {result.error === "invalid_percent" ? "Taxa, imposto, comissão e lucro somados precisam ficar abaixo de 100%." : result.error === "no_hours" ? "Confira dias, horas e ocupação da agenda." : "Confira os valores informados."}
-          </p>
+      {/* 3. Descobertas */}
+      <section className="rounded-xl border border-sand bg-white p-5" aria-labelledby="dsc-title" aria-live="polite">
+        <h2 id="dsc-title" className="text-sm uppercase tracking-widest text-gold">3. O que descobrimos</h2>
+        {okEvals.length === 0 ? (
+          <p className="mt-2 text-sm text-graphite/70">Assim que o preço de um serviço aparecer, as descobertas surgem aqui.</p>
+        ) : withCurrent.length === 0 ? (
+          <p className="mt-2 text-sm text-graphite/80">Preencha “Quanto você cobra hoje?” em seus serviços e mostramos qual rende mais por hora, qual está dando prejuízo e se o seu mês fecha.</p>
         ) : (
-          <div className="mt-2 space-y-4">
-            <div>
-              <p className="text-sm text-graphite/80">Preço sugerido</p>
-              <p className="font-serif text-4xl text-cocoa">{formatBRL(result.suggestedCents)}</p>
-              {result.roundedCents !== result.suggestedCents ? <p className="text-sm text-graphite/80">Arredondando: <strong>{formatBRL(result.roundedCents)}</strong></p> : null}
-            </div>
-            <dl className="divide-y divide-nude text-sm">
-              <div className="flex justify-between py-2"><dt>Material e outros custos</dt><dd>{formatBRL(result.directCostCents)}</dd></div>
-              <div className="flex justify-between py-2"><dt>Seu tempo (retirada + custos fixos)</dt><dd>{formatBRL(result.atSuggested.timeCents)}</dd></div>
-              {result.atSuggested.cardFeeCents > 0 ? <div className="flex justify-between py-2"><dt>Maquininha</dt><dd>{formatBRL(result.atSuggested.cardFeeCents)}</dd></div> : null}
-              {result.atSuggested.taxCents > 0 ? <div className="flex justify-between py-2"><dt>Imposto</dt><dd>{formatBRL(result.atSuggested.taxCents)}</dd></div> : null}
-              {result.atSuggested.commissionCents > 0 ? <div className="flex justify-between py-2"><dt>Comissão</dt><dd>{formatBRL(result.atSuggested.commissionCents)}</dd></div> : null}
-              <div className="flex justify-between py-2 font-medium text-cocoa"><dt>Lucro do negócio</dt><dd>{formatBRL(result.atSuggested.profitCents)}</dd></div>
-            </dl>
-            <div className="rounded-lg bg-nude/60 p-3 text-sm text-cocoa">
-              <p className="font-medium">Seus limites</p>
-              <ul className="mt-1 space-y-1">
-                <li>Abaixo de <strong>{formatBRL(result.floorCents)}</strong>: prejuízo (nem o material e as taxas ficam cobertos).</li>
-                <li>Abaixo de <strong>{formatBRL(result.minimumCents)}</strong>: você não paga o seu tempo.</li>
-                <li>A partir de <strong>{formatBRL(result.suggestedCents)}</strong>: atinge o lucro que você quer.</li>
-              </ul>
-            </div>
-
-            <div className="border-t border-nude pt-4">
-              <TextField id="current" label="E hoje, quanto você cobra por este serviço? (R$)" hint="Veja o que sobra de verdade com o seu preço atual." value={currentPrice} onChange={setCurrentPrice} placeholder="Ex.: 60" />
-              {diagnosis ? (
-                <div className="mt-3 text-sm">
-                  <p className={STATUS_TEXT[diagnosis.status].tone}>{STATUS_TEXT[diagnosis.status].text}</p>
-                  <p className="mt-1 text-graphite/80">
-                    Sobra {formatBRL(diagnosis.breakdown.profitCents)} por atendimento ({(diagnosis.marginBp / 100).toFixed(1).replace(".", ",")}% do preço).
-                  </p>
-                </div>
-              ) : current === null && currentPrice.trim() !== "" ? <p role="alert" className="mt-1 text-sm text-red-800">Use só números (vírgula para centavos).</p> : null}
-            </div>
-          </div>
+          <ul className="mt-3 space-y-3 text-sm text-cocoa">
+            {bad.length > 0 ? (
+              <li className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-900">
+                <strong>{bad.length === 1 ? "1 serviço está" : `${bad.length} serviços estão`} abaixo do necessário:</strong> {bad.map((b) => b.it.name || "sem nome").join(", ")}. Veja o preço sugerido em cada um.
+              </li>
+            ) : (
+              <li className="rounded-lg border border-green-200 bg-green-50 p-3 text-green-900">Nenhum dos serviços informados está dando prejuízo ou deixando de pagar o seu tempo.</li>
+            )}
+            {ranked.length >= 2 ? (
+              <li className="rounded-lg bg-nude/60 p-3">
+                <strong>Quem mais rende por hora:</strong> {ranked[0]?.it.name || "serviço"} ({formatBRL(ranked[0]?.ev.perHourCurrent ?? 0)}/h).{" "}
+                <strong>Quem menos rende:</strong> {ranked[ranked.length - 1]?.it.name || "serviço"} ({formatBRL(ranked[ranked.length - 1]?.ev.perHourCurrent ?? 0)}/h).
+                {hour !== null ? <> Sua meta é {formatBRL(hour)}/h.</> : null}
+              </li>
+            ) : null}
+            {tooMany.length > 0 ? (
+              <li className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                Com o preço de hoje, o seu mês <strong>não fecha só com</strong> {tooMany.map((b) => b.it.name || "serviço").join(", ")}: seriam atendimentos demais para a sua agenda. Subir o preço é mais fácil do que trabalhar mais.
+              </li>
+            ) : null}
+          </ul>
         )}
       </section>
     </div>

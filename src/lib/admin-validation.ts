@@ -198,3 +198,26 @@ export function materialsToText(materials: unknown): string {
     .map((m) => `${m.name} | ${typeof m.unit === "string" ? m.unit : "un"}`)
     .join("\n");
 }
+
+/** Serviços-modelo do segmento: uma linha por serviço, "Nome | minutos". */
+export function parseServiceLines(text: string): Array<{ name: string; minutes: number }> {
+  return text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, 40)
+    .map((l) => {
+      const [name, minutes] = l.split("|").map((x) => x.trim());
+      const m = Number(minutes);
+      return { name: (name ?? "").slice(0, 60), minutes: Number.isInteger(m) && m >= 1 && m <= 1440 ? m : 60 };
+    })
+    .filter((s) => s.name.length > 0);
+}
+
+export function servicesToText(services: unknown): string {
+  if (!Array.isArray(services)) return "";
+  return services
+    .filter((s): s is { name: string; minutes?: number } => typeof s?.name === "string")
+    .map((s) => `${s.name} | ${typeof s.minutes === "number" ? s.minutes : 60}`)
+    .join("\n");
+}

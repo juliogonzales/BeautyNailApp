@@ -16,6 +16,7 @@ import {
   parseBenefitRows,
   parseGuaranteeRows,
   parseMaterialLines,
+  parseServiceLines,
   planSchema,
   presetSchema,
   presetSlugSchema,
@@ -392,7 +393,7 @@ export async function updateCalculatorPresetAction(formData: FormData) {
     .from("calculator_presets")
     .update({
       name: parsed.data.name, description: parsed.data.description, sort_order: parsed.data.sortOrder,
-      materials: parseMaterialLines(str(formData, "materials")),
+      materials: parseMaterialLines(str(formData, "materials")), services: parseServiceLines(str(formData, "services")),
       use_commission: formData.get("useCommission") === "on", is_active: formData.get("isActive") === "on",
     })
     .eq("slug", slug.data)
@@ -411,7 +412,8 @@ export async function createCalculatorPresetAction(formData: FormData) {
   if (!parsed.success) back(path, "erro", firstIssue(parsed.error));
   const { error } = await supabase.from("calculator_presets").insert({
     slug: slug.data, name: parsed.data.name, description: parsed.data.description, sort_order: parsed.data.sortOrder,
-    materials: parseMaterialLines(str(formData, "materials")), use_commission: formData.get("useCommission") === "on",
+    materials: parseMaterialLines(str(formData, "materials")), services: parseServiceLines(str(formData, "services")),
+    use_commission: formData.get("useCommission") === "on",
   });
   if (error) back(path, "erro", friendlyAdminDbError(error.message));
   back(path, "ok", "Segmento criado.");

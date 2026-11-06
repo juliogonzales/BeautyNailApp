@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { createCalculatorPresetAction, updateCalculatorPresetAction } from "@/app/admin/actions";
 import { adminButton, adminButtonGhost, adminInput, Card, Field, Flash, PageTitle, type FlashParams } from "@/components/admin-ui";
 import { requireAdminPage } from "@/lib/admin";
-import { materialsToText } from "@/lib/admin-validation";
+import { materialsToText, servicesToText } from "@/lib/admin-validation";
 
 export const metadata: Metadata = { title: "Calculadoras" };
 
@@ -10,7 +10,7 @@ export default async function CalculatorsAdminPage({ searchParams }: { searchPar
   const params = await searchParams;
   const { supabase } = await requireAdminPage("calculadoras");
   const { data: items, error } = await supabase
-    .from("calculator_presets").select("slug, name, description, materials, use_commission, is_active, sort_order").order("sort_order");
+    .from("calculator_presets").select("slug, name, description, materials, services, use_commission, is_active, sort_order").order("sort_order");
 
   return (
     <main className="space-y-6">
@@ -29,6 +29,11 @@ export default async function CalculatorsAdminPage({ searchParams }: { searchPar
                 <textarea name="materials" rows={6} defaultValue={materialsToText(p.materials)} className={adminInput} />
               </Field>
             </div>
+            <div className="sm:col-span-2">
+              <Field label="Serviços-modelo" hint='Uma linha por serviço: "Nome | minutos" (ex.: Corte | 40). São sugestões; a profissional ajusta.'>
+                <textarea name="services" rows={5} defaultValue={servicesToText(p.services)} className={adminInput} />
+              </Field>
+            </div>
             <label className="flex items-center gap-2 text-sm text-cocoa"><input type="checkbox" name="useCommission" defaultChecked={p.use_commission} className="h-4 w-4" /> Mostrar comissão (equipe)</label>
             <label className="flex items-center gap-2 text-sm text-cocoa"><input type="checkbox" name="isActive" defaultChecked={p.is_active} className="h-4 w-4" /> Ativo</label>
             <div className="sm:col-span-2"><button type="submit" className={adminButtonGhost}>Salvar</button></div>
@@ -42,6 +47,7 @@ export default async function CalculatorsAdminPage({ searchParams }: { searchPar
           <Field label="Ordem"><input name="sortOrder" inputMode="numeric" defaultValue={100} className={adminInput} /></Field>
           <Field label="Descrição"><input name="description" className={adminInput} /></Field>
           <div className="sm:col-span-2"><Field label="Materiais" hint='"Nome | unidade" por linha'><textarea name="materials" rows={4} className={adminInput} /></Field></div>
+          <div className="sm:col-span-2"><Field label="Serviços-modelo" hint='"Nome | minutos" por linha'><textarea name="services" rows={3} className={adminInput} /></Field></div>
           <label className="flex items-center gap-2 text-sm text-cocoa"><input type="checkbox" name="useCommission" className="h-4 w-4" /> Mostrar comissão</label>
           <div className="sm:col-span-2"><button type="submit" className={adminButton}>Criar segmento</button></div>
         </form>

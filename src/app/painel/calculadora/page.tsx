@@ -9,6 +9,7 @@ import { getSessionContext } from "@/lib/tenant";
 export const metadata: Metadata = { title: "Calculadora de preços" };
 
 type MaterialRow = { name?: unknown; unit?: unknown };
+type ServiceRow = { name?: unknown; minutes?: unknown };
 
 export default async function CalculatorPage() {
   const { supabase, user, membership } = await getSessionContext();
@@ -28,7 +29,7 @@ export default async function CalculatorPage() {
     );
   } else {
     const [{ data: presetRows, error }, { data: profileRow }, { data: mySpecialties }] = await Promise.all([
-      supabase.from("calculator_presets").select("slug, name, description, materials, use_commission").eq("is_active", true).order("sort_order"),
+      supabase.from("calculator_presets").select("slug, name, description, materials, services, use_commission").eq("is_active", true).order("sort_order"),
       supabase.from("pricing_profiles").select("*").eq("tenant_id", membership.tenant.id).maybeSingle(),
       supabase.from("tenant_specialties").select("specialties(calculator_preset, sort_order)").eq("tenant_id", membership.tenant.id),
     ]);
@@ -41,6 +42,9 @@ export default async function CalculatorPage() {
       materials: (Array.isArray(p.materials) ? (p.materials as MaterialRow[]) : [])
         .filter((m) => typeof m.name === "string")
         .map((m) => ({ name: m.name as string, unit: typeof m.unit === "string" ? m.unit : "un" })),
+      services: (Array.isArray(p.services) ? (p.services as ServiceRow[]) : [])
+        .filter((s) => typeof s.name === "string" && typeof s.minutes === "number")
+        .map((s) => ({ name: s.name as string, minutes: s.minutes as number })),
     }));
 
     // Segmento inicial: o salvo no perfil, senão o da primeira especialidade do negócio.
@@ -64,8 +68,8 @@ export default async function CalculatorPage() {
       <header>
         <h1 className="font-serif text-3xl text-cocoa">Calculadora de preços</h1>
         <p className="mt-2 text-graphite/80">
-          Descubra quanto cobrar sem sair no prejuízo. Primeiro você informa os dados do seu negócio (uma vez só), depois cada serviço:
-          materiais, tempo, taxas e comissão. Os dados do negócio ficam salvos; os cálculos de cada serviço, por enquanto, não.
+          Responda 4 perguntas sobre o seu negócio (uma vez só), toque nos serviços que você faz e veja quanto cobrar, quanto sobra de
+          verdade e se o seu mês fecha. Os dados do negócio ficam salvos; os cálculos de cada serviço, por enquanto, não.
         </p>
       </header>
       {content}

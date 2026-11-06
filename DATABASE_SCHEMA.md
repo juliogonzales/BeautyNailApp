@@ -34,3 +34,4 @@ Esboço das próximas fases: customers, customer_consents, customer_health_recor
 - `calculator_presets(slug pk, name, description, materials jsonb [{name,unit}], use_commission, is_active, sort_order)`: leitura para todos os logados (ativos), escrita só superadmin; auditada.
 - `pricing_profiles(tenant_id pk, monthly_income_cents, days_per_week, hours_per_day, occupancy_bp, fixed_costs_cents, card_fee_bp, tax_bp, commission_bp, margin_bp, preset_slug)`: leitura por membros do negócio, escrita por quem gerencia.
 - `specialties.calculator_preset` → `calculator_presets.slug`.
+- `calculator_presets.services jsonb` (lista de `{name, minutes}`, máx. 40): serviços-modelo do segmento, sem preço.

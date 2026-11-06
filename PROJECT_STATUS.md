@@ -58,3 +58,7 @@ Definir o primeiro superadmin, conferir o build da Vercel e testar página públ
 - Implementado: calculadora guiada, perfil salvo, segmentos no admin, migration aplicada no Supabase.
 - **Não validado por teste**: Vitest e build local não rodam na sessão (sem npm); validação depende da CI/Vercel. Falta teste A×B de RLS para `pricing_profiles`.
 - Próximo: catálogo de serviços, construtor de página (no-code), análise de competitividade.
+
+## Atualização 2026-11-06 — calculadora simplificada
+- Implementado e migration aplicada. **Não validado por teste** (Vitest/build local indisponíveis; vale o build da Vercel). Tela não foi aberta no navegador por mim.
+- Pendente: "Salvar como serviço" (liga ao catálogo), teste A×B de `pricing_profiles`.

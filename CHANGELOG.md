@@ -23,3 +23,7 @@
 - Nova calculadora guiada em 3 passos (negócio, serviço, resultado) com materiais por embalagem, comissão, imposto e diagnóstico do preço atual.
 - Segmentos editáveis no admin (`/admin/calculadoras`), incluindo barbearia; especialidade escolhe o segmento.
 - Migration `20261105000003`: `calculator_presets`, `pricing_profiles`.
+
+## Calculadora simplificada (2026-11-06)
+- 4 perguntas, serviços-modelo por segmento (toque para adicionar), material em um campo, resultado imediato por serviço e resumo de descobertas.
+- Migration `20261106000001`: `calculator_presets.services`; editor em `/admin/calculadoras`.
