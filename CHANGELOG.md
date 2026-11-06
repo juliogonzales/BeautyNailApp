@@ -22,4 +22,4 @@
 ## Calculadora por segmento (2026-11-05)
 - Nova calculadora guiada em 3 passos (negócio, serviço, resultado) com materiais por embalagem, comissão, imposto e diagnóstico do preço atual.
 - Segmentos editáveis no admin (`/admin/calculadoras`), incluindo barbearia; especialidade escolhe o segmento.
-- Migration `20261105000002`: `calculator_presets`, `pricing_profiles`.
+- Migration `20261105000003`: `calculator_presets`, `pricing_profiles`.
