@@ -79,3 +79,6 @@ Definir o primeiro superadmin, conferir o build da Vercel e testar página públ
 - Bug real achado pela CI e corrigido: o formulário de modelos do console não enviava a opção "serviços", então não dava para desligá-la (migrations não afetadas).
 - Corrige itens acima: a CI **já rodou**; o job de banco deixou de ser experimental (confere `PASS=n, FAIL=0` pelo texto, pois o teste termina com erro proposital).
 - Ainda NÃO validado: Playwright (teste ponta a ponta) não existe; telas nunca foram abertas por mim no navegador; `package-lock.json` ainda não commitado (workflow "Gerar package-lock.json" pronto para disparar).
+
+## Atualização 2026-11-07 (tarde) — lockfile
+- `package-lock.json` gerado pelo workflow na CI e commitado na branch; a CI passa a usar `npm ci` (instalação reprodutível). O botão "Run workflow" só aparece quando o workflow estiver na `main`; por isso o gatilho é o push.
