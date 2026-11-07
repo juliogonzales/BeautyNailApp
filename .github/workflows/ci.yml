@@ -20,8 +20,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # Sem package-lock.json ainda: troque por `npm ci` quando o lockfile for commitado.
-      - run: npm install
+      # Usa `npm ci` quando o package-lock.json existir (workflow "Gerar package-lock.json").
+      - run: if [ -f package-lock.json ]; then npm ci; else npm install; fi
       - run: npm run lint
       - run: npm test
       - run: npm run build

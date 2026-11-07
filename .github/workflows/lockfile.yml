@@ -1,0 +1,25 @@
+name: Gerar package-lock.json
+
+# Uso (pelo celular também): GitHub > Actions > "Gerar package-lock.json" > Run workflow, escolhendo a branch.
+# Gera o arquivo com o npm do GitHub e o commita na própria branch. Depois disso o CI usa `npm ci` sozinho.
+on: workflow_dispatch
+
+permissions:
+  contents: write
+
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --package-lock-only --ignore-scripts
+      - name: Commita o lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git diff --cached --quiet || git commit -m "chore: gera package-lock.json"
+          git push
