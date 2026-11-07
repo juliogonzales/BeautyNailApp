@@ -38,4 +38,4 @@
 - **Como foi achado:** o teste de isolamento antigo falhou em 11 verificações ao ser reexecutado. O próprio teste estava desatualizado (nomes de plano fixos), mas as falhas restantes eram reais.
 - **Correção:** migration `20261106000003` restaura os privilégios mínimos. Depois dela: teste da fundação 54/54 e teste da Fase 2 47/47 (rodados direto no banco, 2026-11-06).
 - **Prevenção:** o teste da Fase 2 confere privilégios (anon sem acesso a funções internas; colunas de escrita). Se alguém mexer em "Data API" / permissões no painel do Supabase, rode os dois testes de novo (`supabase/tests/`), que agora também estão na CI.
-- **Não conferido:** se algum dado foi alterado indevidamente no intervalo (2026-11-04 a 2026-11-06). Só havia o negócio de teste da própria dona do projeto; recomenda-se olhar `audit_logs` por `tenants.update` de `status`/`slug` (a auditoria registra só nomes de campos).
+- **Conferido (2026-11-06):** a auditoria não registra nenhuma alteração de `status` ou `slug` em negócios desde 2026-11-04. Nada indica uso indevido da falha.
