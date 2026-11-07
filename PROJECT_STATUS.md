@@ -34,7 +34,7 @@ App Next.js da Fase 1 escrito sem acesso ao npm; **nunca foi instalado, compilad
 ## Em andamento / pendente
 - **Primeira execução da CI e correção do que ela apontar** (próxima ação).
 - Commitar `package-lock.json` e trocar `npm install` por `npm ci` no workflow.
-- Teste Playwright (cadastro → onboarding → painel) e teste de isolamento A×B no nível do app.
+- Teste de isolamento A×B no nível do app (e2e com duas profissionais). O e2e básico (cadastro → negócio → serviço → página pública) já existe.
 - Documentação Fase 0: escrita. Atualizar README/ARCHITECTURE após validar o app.
 - Repositório GitHub: anexado; `develop` criada; `main` só para produção (merge via PR).
 - Login com Google: exige credenciais do Google Cloud (passo manual).
@@ -71,14 +71,14 @@ Definir o primeiro superadmin, conferir o build da Vercel e testar página públ
 ## Atualização 2026-11-06 — testes de banco executados
 - **Validado por teste (executado no banco de desenvolvimento, 2026-11-06):** isolamento A×B da fundação 54/54 e da Fase 2 47/47 (serviços, perfil de preço, segmentos, blocos da página, página pública, funções do console, usuária sem negócio, anônimo, superadmin sem acesso a dados de clientes).
 - **Problema real encontrado e corrigido:** permissões da API ampliadas no painel do Supabase deixaram `anon`/`authenticated` com privilégio total (ver SECURITY.md). Corrigido pela migration `20261106000003`.
-- Ainda NÃO validado: Vitest (nunca executado), Playwright (não existe), CI (nunca rodou no GitHub).
+- Validado no CI: Vitest, DB A×B e Playwright (3 testes, Chromium mobile, Supabase local).
 - Corrige o item acima: "Salvar como serviço" já foi feito (calculadora → catálogo).
 
 ## Atualização 2026-11-07 — CI executada e verde
 - **Validado por teste na CI do GitHub (commit abc7abf, 2026-11-07):** lint, build de produção e typecheck passaram; **Vitest 13 arquivos / 121 testes aprovados**; testes de isolamento no banco **54/54 e 47/47**, rodando em um Supabase local criado do zero com `supabase db reset` (prova que as migrations aplicam em banco vazio).
 - Bug real achado pela CI e corrigido: o formulário de modelos do console não enviava a opção "serviços", então não dava para desligá-la (migrations não afetadas).
 - Corrige itens acima: a CI **já rodou**; o job de banco deixou de ser experimental (confere `PASS=n, FAIL=0` pelo texto, pois o teste termina com erro proposital).
-- Ainda NÃO validado: Playwright (teste ponta a ponta) não existe; telas nunca foram abertas por mim no navegador; `package-lock.json` ainda não commitado (workflow "Gerar package-lock.json" pronto para disparar).
+- Ainda NÃO validado: telas nunca foram inspecionadas visualmente por mim (o e2e só verifica fluxo e texto); o lockfile é regenerado pelo workflow quando ausente.
 
 ## Atualização 2026-11-07 (tarde) — lockfile
 - `package-lock.json` gerado pelo workflow na CI e commitado na branch; a CI passa a usar `npm ci` (instalação reprodutível). O botão "Run workflow" só aparece quando o workflow estiver na `main`; por isso o gatilho é o push.
