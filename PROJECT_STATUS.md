@@ -73,3 +73,9 @@ Definir o primeiro superadmin, conferir o build da Vercel e testar página públ
 - **Problema real encontrado e corrigido:** permissões da API ampliadas no painel do Supabase deixaram `anon`/`authenticated` com privilégio total (ver SECURITY.md). Corrigido pela migration `20261106000003`.
 - Ainda NÃO validado: Vitest (nunca executado), Playwright (não existe), CI (nunca rodou no GitHub).
 - Corrige o item acima: "Salvar como serviço" já foi feito (calculadora → catálogo).
+
+## Atualização 2026-11-07 — CI executada e verde
+- **Validado por teste na CI do GitHub (commit abc7abf, 2026-11-07):** lint, build de produção e typecheck passaram; **Vitest 13 arquivos / 121 testes aprovados**; testes de isolamento no banco **54/54 e 47/47**, rodando em um Supabase local criado do zero com `supabase db reset` (prova que as migrations aplicam em banco vazio).
+- Bug real achado pela CI e corrigido: o formulário de modelos do console não enviava a opção "serviços", então não dava para desligá-la (migrations não afetadas).
+- Corrige itens acima: a CI **já rodou**; o job de banco deixou de ser experimental (confere `PASS=n, FAIL=0` pelo texto, pois o teste termina com erro proposital).
+- Ainda NÃO validado: Playwright (teste ponta a ponta) não existe; telas nunca foram abertas por mim no navegador; `package-lock.json` ainda não commitado (workflow "Gerar package-lock.json" pronto para disparar).

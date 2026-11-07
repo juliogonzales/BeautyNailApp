@@ -5,7 +5,7 @@ Ordem fixa (CLAUDE.md §10). **MVP vendável: Fases 1–3 + 8 (mínimo) validada
 | Fase | Tema | Situação |
 |---|---|---|
 | 0 | Arquitetura e documentação | Escrita; revisar após validar o app |
-| 1 | Fundação: auth, multi-tenant, RLS, onboarding, planos, permissões | Implementada; banco **validado por teste** (54 + 47 verificações); app ainda sem Vitest/CI executados |
+| 1 | Fundação: auth, multi-tenant, RLS, onboarding, planos, permissões | Implementada; **CI verde** (121 testes Vitest, build, tipos) e banco **validado por teste** (54 + 47 verificações); falta Playwright |
 | 2 | Operação: serviços, clientes, agenda, anamnese, portfólio, página pública, editor | **Em andamento**: serviços, página pública e construtor feitos; faltam clientes, agenda, anamnese, portfólio |
 | 3 | Gestão: financeiro, precificação, estoque, relatórios | Precificação (calculadora) adiantada; resto pendente |
 | 4 | Crescimento: pacotes, fidelidade, vouchers, loja, marketing, WhatsApp, área da cliente | Pendente |
@@ -16,7 +16,7 @@ Ordem fixa (CLAUDE.md §10). **MVP vendável: Fases 1–3 + 8 (mínimo) validada
 | 9 | Homologação e produção | Pendente |
 
 ## Próximos passos (curto prazo)
-1. Fechar a Fase 1: gerar `package-lock.json` (workflow "Gerar package-lock.json"), primeira execução da CI, corrigir o que ela apontar, Playwright (cadastro → onboarding → painel).
+1. Fechar a Fase 1: gerar `package-lock.json` (workflow "Gerar package-lock.json") e escrever o Playwright (cadastro → onboarding → painel). A CI já roda e está verde.
 2. Configurar login com Google (credenciais do Google Cloud) e reativar "Confirm email" antes de lançar.
 3. Fase 2: clientes e agenda (com sinal por Pix depois), anamnese (tabelas separadas, LGPD), portfólio com Storage.
 4. Construtor de página: rascunho/publicar, arrastar para reordenar, galeria de fotos.

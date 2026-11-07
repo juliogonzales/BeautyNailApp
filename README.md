@@ -38,4 +38,4 @@ Ver `.env.example`. A `SUPABASE_SERVICE_ROLE_KEY` só existe no servidor e nunca
 
 ## Avisos honestos
 - Os textos legais (termos, privacidade) são **rascunhos e precisam de revisão de advogado**.
-- Os testes Vitest e a CI ainda não rodaram no GitHub; o que está validado por teste hoje é o isolamento no banco (ver `PROJECT_STATUS.md`).
+- A CI (lint, 121 testes Vitest, build, tipos e isolamento no banco) está verde; ainda **não há teste ponta a ponta (Playwright)** e as telas não foram validadas por navegação automatizada (ver `PROJECT_STATUS.md`).
