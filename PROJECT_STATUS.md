@@ -67,3 +67,9 @@ Definir o primeiro superadmin, conferir o build da Vercel e testar página públ
 - Implementado: construtor de blocos, renderização pública, limite por plano, migration aplicada.
 - **Não validado por teste**: Vitest/build local indisponíveis; telas não abertas no navegador por mim. Falta teste A×B de RLS (`pricing_profiles`, `page_blocks`).
 - Pendente: rascunho/publicar separado, arrastar para reordenar, galeria (Storage), gestão de planos/produtos pela cliente.
+
+## Atualização 2026-11-06 — testes de banco executados
+- **Validado por teste (executado no banco de desenvolvimento, 2026-11-06):** isolamento A×B da fundação 54/54 e da Fase 2 47/47 (serviços, perfil de preço, segmentos, blocos da página, página pública, funções do console, usuária sem negócio, anônimo, superadmin sem acesso a dados de clientes).
+- **Problema real encontrado e corrigido:** permissões da API ampliadas no painel do Supabase deixaram `anon`/`authenticated` com privilégio total (ver SECURITY.md). Corrigido pela migration `20261106000003`.
+- Ainda NÃO validado: Vitest (nunca executado), Playwright (não existe), CI (nunca rodou no GitHub).
+- Corrige o item acima: "Salvar como serviço" já foi feito (calculadora → catálogo).

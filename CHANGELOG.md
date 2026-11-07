@@ -33,3 +33,8 @@
 - Calculadora: botão "Salvar no catálogo".
 - Migration `20261106000002`: `tenant_settings.page_blocks`, recurso `page_blocks`, trigger de limite, `get_public_tenant` com blocos.
 - Painel: removido atalho "Serviços" duplicado; novo atalho "Montar minha página".
+
+## Testes de isolamento e correção de permissões (2026-11-06)
+- Novo `supabase/tests/rls_isolation_phase2.sql` (47 verificações: serviços, perfil de preço, segmentos, blocos, página pública, funções do console, superadmin sem acesso a dados de clientes).
+- Teste da fundação atualizado (sem nomes de plano fixos): 54/54.
+- Migration `20261106000003`: restaura privilégios mínimos (ver SECURITY.md, incidente).

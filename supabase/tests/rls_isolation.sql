@@ -7,6 +7,7 @@ declare
   ub uuid := gen_random_uuid();
   uc uuid := gen_random_uuid();
   ta uuid; tb uuid; n bigint; sp uuid[]; b boolean; r record;
+  exp_customers integer; exp_finance boolean; exp_plans bigint; exp_public bigint; top_plan_slug text;
   v jsonb := '[]'::jsonb;
   out text;
 begin
@@ -15,6 +16,14 @@ begin
     (ub, 'authenticated', 'authenticated', 'b@test.local', '{"name":"Bia"}'),
     (uc, 'authenticated', 'authenticated', 'c@test.local', '{}');
   select array_agg(id) into sp from public.specialties where slug in ('nail-design', 'manicure');
+  -- Valores esperados vêm do próprio banco (planos e textos são dados editáveis; nada de nome/slug fixo).
+  select pf.limit_value, true into exp_customers, b from public.plan_features pf join public.plans p on p.id = pf.plan_id
+    where p.price_monthly_cents = 0 and pf.feature_key = 'customers' order by p.sort_order limit 1;
+  select coalesce((select pf.enabled from public.plan_features pf join public.plans p on p.id = pf.plan_id
+    where p.price_monthly_cents = 0 and pf.feature_key = 'finance' order by p.sort_order limit 1), false) into exp_finance;
+  select count(*) into exp_plans from public.plans where is_active;
+  select count(*) into exp_public from public.platform_settings where is_public;
+  select slug into top_plan_slug from public.plans order by price_monthly_cents desc limit 1;
 
   -- Ana e Bia criam seus negócios pela RPC oficial
   perform set_config('request.jwt.claims', json_build_object('sub', ua, 'role', 'authenticated')::text, true);
@@ -30,8 +39,8 @@ begin
   select count(*) into n from public.profiles where id in (ua, ub, uc);
   v := v || to_jsonb((case when n = 3 then 'PASS' else 'FAIL' end) || ' trigger criou 3 profiles (' || n || ')');
   select count(*) into n from public.subscriptions s join public.plans p on p.id = s.plan_id
-    where s.tenant_id in (ta, tb) and p.slug = 'esmalte' and s.status = 'free';
-  v := v || to_jsonb((case when n = 2 then 'PASS' else 'FAIL' end) || ' ambos começam no plano Esmalte/free (' || n || ')');
+    where s.tenant_id in (ta, tb) and p.price_monthly_cents = 0 and s.status = 'free';
+  v := v || to_jsonb((case when n = 2 then 'PASS' else 'FAIL' end) || ' ambos começam no plano gratuito (' || n || ')');
 
   -- ===================== Ana tenta acessar dados da Bia =====================
   perform set_config('request.jwt.claims', json_build_object('sub', ua, 'role', 'authenticated')::text, true);
@@ -104,13 +113,13 @@ begin
     v := v || to_jsonb('PASS A não altera status do tenant (' || sqlerrm || ')');
   end;
   begin
-    update public.subscriptions set plan_id = (select id from public.plans where slug = 'master') where tenant_id = ta;
+    update public.subscriptions set plan_id = (select id from public.plans where slug = top_plan_slug) where tenant_id = ta;
     v := v || to_jsonb('FAIL A trocou o próprio plano direto'::text);
   exception when others then
     v := v || to_jsonb('PASS A não troca plano direto (' || sqlerrm || ')');
   end;
   begin
-    insert into public.subscriptions (tenant_id, plan_id) values (ta, (select id from public.plans where slug = 'master'));
+    insert into public.subscriptions (tenant_id, plan_id) values (ta, (select id from public.plans where slug = top_plan_slug));
     v := v || to_jsonb('FAIL A inseriu assinatura'::text);
   exception when others then
     v := v || to_jsonb('PASS A não insere assinatura'::text);
@@ -150,7 +159,7 @@ begin
     v := v || to_jsonb('PASS A não vira admin da plataforma'::text);
   end;
   begin
-    update public.plans set price_monthly_cents = 0 where slug = 'master';
+    update public.plans set price_monthly_cents = 0 where slug = top_plan_slug;
     get diagnostics n = row_count;
     v := v || to_jsonb((case when n = 0 then 'PASS' else 'FAIL' end) || ' A não altera preços de planos (linhas: ' || n || ')');
   exception when others then
@@ -184,9 +193,9 @@ begin
   select count(*) into n from public.audit_logs where tenant_id = ta and action = 'auth.login';
   v := v || to_jsonb((case when n = 1 then 'PASS' else 'FAIL' end) || ' log_audit funciona no próprio tenant');
   select * into r from public.tenant_feature(ta, 'customers');
-  v := v || to_jsonb((case when r.enabled and r.limit_value = 30 then 'PASS' else 'FAIL' end) || ' limite de clientes do Esmalte = 30 (veio ' || coalesce(r.limit_value::text, 'null') || ')');
+  v := v || to_jsonb((case when r.enabled and r.limit_value is not distinct from exp_customers then 'PASS' else 'FAIL' end) || ' limite de clientes do plano gratuito confere com plan_features (veio ' || coalesce(r.limit_value::text, 'null') || ')');
   select * into r from public.tenant_feature(ta, 'finance');
-  v := v || to_jsonb((case when not r.enabled then 'PASS' else 'FAIL' end) || ' financeiro bloqueado no Esmalte');
+  v := v || to_jsonb((case when r.enabled = exp_finance then 'PASS' else 'FAIL' end) || ' financeiro no plano gratuito confere com plan_features');
   select public.is_slug_available('admin') into b;
   v := v || to_jsonb((case when not b then 'PASS' else 'FAIL' end) || ' slug reservado indisponível');
   select public.is_slug_available('bia-studio') into b;
@@ -215,7 +224,7 @@ begin
   select count(*) into n from public.audit_logs;
   v := v || to_jsonb((case when n = 0 then 'PASS' else 'FAIL' end) || ' C não vê auditoria');
   select count(*) into n from public.plans;
-  v := v || to_jsonb((case when n = 4 then 'PASS' else 'FAIL' end) || ' C vê os 4 planos públicos (' || n || ')');
+  v := v || to_jsonb((case when n = exp_plans then 'PASS' else 'FAIL' end) || ' C vê os planos ativos (' || n || ')');
   reset role;
 
   -- ===================== Visitante anônimo =====================
@@ -240,9 +249,9 @@ begin
     v := v || to_jsonb('PASS anon não cria tenant'::text);
   end;
   select count(*) into n from public.plans;
-  v := v || to_jsonb((case when n = 4 then 'PASS' else 'FAIL' end) || ' anon vê preços dos planos (' || n || ')');
+  v := v || to_jsonb((case when n = exp_plans then 'PASS' else 'FAIL' end) || ' anon vê preços dos planos (' || n || ')');
   select count(*) into n from public.platform_settings;
-  v := v || to_jsonb((case when n = 3 then 'PASS' else 'FAIL' end) || ' anon vê só configurações públicas (' || n || ')');
+  v := v || to_jsonb((case when n = exp_public then 'PASS' else 'FAIL' end) || ' anon vê só configurações públicas (' || n || ')');
   begin
     perform count(*) from public.reserved_slugs;
     v := v || to_jsonb('FAIL anon leu reserved_slugs'::text);
