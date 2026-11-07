@@ -52,7 +52,8 @@ export function TemplateFields({ meta, theme = FALLBACK_THEME }: { meta: Meta; t
         <legend className="text-sm font-medium text-cocoa">Blocos visíveis</legend>
         <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-cocoa">
           {([["s_specialties", "Especialidades", theme.show.specialties], ["s_whatsapp", "Botão WhatsApp", theme.show.whatsapp],
-             ["s_instagram", "Botão Instagram", theme.show.instagram], ["s_location", "Localização", theme.show.location]] as const).map(([name, label, on]) => (
+             ["s_instagram", "Botão Instagram", theme.show.instagram], ["s_location", "Localização", theme.show.location],
+             ["s_services", "Serviços e preços", theme.show.services]] as const).map(([name, label, on]) => (
             <label key={name} className="flex items-center gap-2"><input type="checkbox" name={name} defaultChecked={on} className="h-4 w-4" /> {label}</label>
           ))}
         </div>

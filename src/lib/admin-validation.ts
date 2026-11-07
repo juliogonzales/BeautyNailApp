@@ -112,7 +112,7 @@ export function parseTemplateConfig(
   const config = themeConfigSchema.safeParse({
     layout: get("layout"), font: get("font"), radius: get("radius"), avatar: get("avatar"),
     colors: colors.data,
-    show: { specialties: on("s_specialties"), whatsapp: on("s_whatsapp"), instagram: on("s_instagram"), location: on("s_location") },
+    show: { specialties: on("s_specialties"), whatsapp: on("s_whatsapp"), instagram: on("s_instagram"), location: on("s_location"), services: on("s_services") },
   });
   if (!config.success) return { ok: false, error: "Escolha layout, fonte, cantos e avatar válidos." };
   const issues = themeContrastIssues(config.data.colors);

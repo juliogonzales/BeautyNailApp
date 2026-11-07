@@ -28,10 +28,8 @@ jobs:
       - run: npm run typecheck
 
   database:
-    name: Banco (RLS A x B) — experimental
+    name: Banco (RLS A x B)
     runs-on: ubuntu-latest
-    # Nunca foi executado: ainda não validado. Não bloqueia o app até confirmarmos que roda.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
@@ -41,9 +39,17 @@ jobs:
         run: |
           [ -f supabase/config.toml ] || supabase init
           supabase start
-      - name: Aplica migrations
+      - name: Aplica migrations do zero
         run: supabase db reset
-      - name: Roda o teste de isolamento
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/rls_isolation.sql
-      - name: Roda o teste de isolamento da Fase 2 (serviços, calculadora, blocos, console)
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/rls_isolation_phase2.sql
+      - name: Roda os testes de isolamento (fundação e Fase 2)
+        # Cada teste termina com um erro proposital que desfaz tudo e imprime "PASS=n, FAIL=m";
+        # por isso a conferência é pelo texto, não pelo código de saída do psql.
+        run: |
+          for f in supabase/tests/rls_isolation.sql supabase/tests/rls_isolation_phase2.sql; do
+            psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -f "$f" > resultado.txt 2>&1 || true
+            cat resultado.txt
+            if ! grep -Eq "RESULTADOS \(rollback automático: PASS=[1-9][0-9]*, FAIL=0\)" resultado.txt; then
+              echo "::error::$f tem falhas ou não terminou"
+              exit 1
+            fi
+          done

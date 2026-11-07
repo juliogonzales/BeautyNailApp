@@ -33,14 +33,16 @@ describe("tema da página pública", () => {
 describe("formulário de modelo", () => {
   const form = {
     c_background: "#faf7f2", c_surface: "#ffffff", c_text: "#3a3330", c_muted: "#6f6560", c_primary: "#5b4636", c_accent: "#b8975a",
-    layout: "left", font: "sans", radius: "none", avatar: "initial", s_specialties: "on", s_whatsapp: "on",
+    layout: "left", font: "sans", radius: "none", avatar: "initial", s_specialties: "on", s_whatsapp: "on", s_services: "on",
   };
   it("monta a configuração e converte checkboxes", () => {
     const r = parseTemplateConfig(form);
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.config.layout).toBe("left");
-      expect(r.config.show).toEqual({ specialties: true, whatsapp: true, instagram: false, location: false });
+      expect(r.config.show).toEqual({ specialties: true, whatsapp: true, instagram: false, location: false, services: true });
+      const off = parseTemplateConfig({ ...form, s_services: "" });
+      expect(off.ok && off.config.show.services).toBe(false);
     }
   });
   it("rejeita cor fora do formato, opção inválida e contraste baixo", () => {
